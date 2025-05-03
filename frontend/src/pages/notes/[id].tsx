@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import {
   Container,
@@ -20,7 +21,10 @@ import {
   Grid,
   Drawer,
   Tab,
-  Tabs
+  Tabs,
+  CircularProgress,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -31,21 +35,25 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import ChatPanel from '@/components/ChatPanel';
+import { noteApi, databaseApi } from '@/services/api';
 
-// 模拟笔记数据
-const mockNotes = [
-  { id: 1, title: '项目计划', content: '# 项目计划\n\n这是一个项目计划文档...', updatedAt: '2023-05-10' },
-  { id: 2, title: '会议记录', content: '# 会议记录\n\n今天的会议讨论了以下内容...', updatedAt: '2023-05-09' },
-  { id: 3, title: '学习笔记', content: '# 学习笔记\n\n今天学习了以下内容...', updatedAt: '2023-05-08' },
-  { id: 4, title: '想法收集', content: '# 想法收集\n\n最近有以下想法...', updatedAt: '2023-05-07' },
-];
+// 笔记类型定义
+interface Note {
+  id: number;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user_id: number;
+  databases?: Database[];
+}
 
-// 模拟数据库数据
-const mockDatabases = [
-  { id: 1, name: '项目数据', description: '项目相关数据' },
-  { id: 2, name: '客户信息', description: '客户联系信息' },
-  { id: 3, name: '产品目录', description: '产品信息和价格' },
-];
+// 数据库类型定义
+interface Database {
+  id: number;
+  name: string;
+  description?: string;
+}
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -78,7 +86,7 @@ export default function NotePage() {
   const router = useRouter();
   const { id } = router.query;
 
-  const [note, setNote] = useState<any>(null);
+  const [note, setNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -88,46 +96,140 @@ export default function NotePage() {
   const [tabValue, setTabValue] = useState(0);
   const editorRef = useRef<any>(null);
 
+  // 状态管理
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [databases, setDatabases] = useState<Database[]>([]);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // 获取数据库列表
+  useEffect(() => {
+    const fetchDatabases = async () => {
+      try {
+        const data = await databaseApi.getDatabases();
+        setDatabases(data);
+      } catch (err) {
+        console.error('获取数据库列表失败:', err);
+        // 使用空数组
+        setDatabases([]);
+      }
+    };
+
+    fetchDatabases();
+  }, []);
+
   // 获取笔记数据
   useEffect(() => {
     if (id) {
-      const noteId = parseInt(id as string);
-      const foundNote = mockNotes.find(note => note.id === noteId);
-
-      if (foundNote) {
-        setNote(foundNote);
-        setTitle(foundNote.title);
-        setContent(foundNote.content);
-        // 模拟已关联的数据库
-        setSelectedDatabases([1]);
-      } else if (id === 'new') {
+      if (id === 'new') {
         setNote(null);
         setTitle('');
         setContent('');
         setIsEditing(true);
         setSelectedDatabases([]);
       } else {
-        // 笔记不存在，返回列表页
-        router.push('/notes');
+        const fetchNote = async () => {
+          try {
+            setLoading(true);
+            setError(null);
+            const noteId = parseInt(id as string);
+            const data = await noteApi.getNote(noteId);
+            setNote(data);
+            setTitle(data.title);
+            setContent(data.content);
+
+            // 设置已关联的数据库
+            if (data.databases) {
+              setSelectedDatabases(data.databases.map((db: Database) => db.id));
+            } else {
+              setSelectedDatabases([]);
+            }
+          } catch (err) {
+            console.error('获取笔记详情失败:', err);
+            setError('获取笔记详情失败，请稍后重试');
+            // 笔记不存在，返回列表页
+            router.push('/notes');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchNote();
       }
     }
   }, [id, router]);
 
-  const handleSave = () => {
-    // 在实际应用中，这里会调用API保存笔记
-    console.log('保存笔记:', { title, content, databases: selectedDatabases });
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      setLoading(true);
 
-    // 如果是新建笔记，保存后跳转到笔记列表
-    if (id === 'new') {
-      router.push('/notes');
+      // 验证标题不能为空
+      if (!title.trim()) {
+        setSnackbarMessage('笔记标题不能为空');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        setLoading(false);
+        return;
+      }
+
+      const noteData = {
+        title,
+        content,
+        database_ids: selectedDatabases
+      };
+
+      if (id === 'new') {
+        // 创建新笔记
+        const createdNote = await noteApi.createNote(noteData);
+        setSnackbarMessage('笔记创建成功');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+
+        // 创建成功后跳转到笔记详情页
+        router.push(`/notes/${createdNote.id}`);
+      } else {
+        // 更新现有笔记
+        const updatedNote = await noteApi.updateNote(parseInt(id as string), noteData);
+        setNote(updatedNote);
+        setSnackbarMessage('笔记保存成功');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        setIsEditing(false);
+      }
+    } catch (err) {
+      console.error('保存笔记失败:', err);
+      setSnackbarMessage('保存笔记失败，请稍后重试');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = () => {
-    // 在实际应用中，这里会调用API删除笔记
-    console.log('删除笔记:', id);
-    router.push('/notes');
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      await noteApi.deleteNote(parseInt(id as string));
+      setSnackbarMessage('笔记删除成功');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+
+      // 删除成功后返回笔记列表
+      router.push('/notes');
+    } catch (err) {
+      console.error('删除笔记失败:', err);
+      setSnackbarMessage('删除笔记失败，请稍后重试');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    setDeleteDialogOpen(true);
   };
 
   const handleDatabaseToggle = (databaseId: number) => {
@@ -143,6 +245,24 @@ export default function NotePage() {
     setSelectedDatabases(newSelectedDatabases);
   };
 
+  const handleSaveDatabaseAssociations = async () => {
+    try {
+      if (id !== 'new') {
+        // 更新笔记的数据库关联
+        await noteApi.updateNote(parseInt(id as string), { database_ids: selectedDatabases });
+        setSnackbarMessage('数据库关联已保存');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+      }
+      setDatabaseDialogOpen(false);
+    } catch (err) {
+      console.error('保存数据库关联失败:', err);
+      setSnackbarMessage('保存数据库关联失败，请稍后重试');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -153,10 +273,48 @@ export default function NotePage() {
     }
   };
 
+  // 加载状态
+  if (loading && id !== 'new') {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  // 错误状态
+  if (error && id !== 'new') {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/notes')}
+        >
+          返回笔记列表
+        </Button>
+      </Container>
+    );
+  }
+
+  // 笔记不存在
   if (!note && id !== 'new') {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Typography>加载中...</Typography>
+        <Typography>笔记不存在或已被删除</Typography>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push('/notes')}
+          sx={{ mt: 2 }}
+        >
+          返回笔记列表
+        </Button>
       </Container>
     );
   }
@@ -204,8 +362,8 @@ export default function NotePage() {
                       router.push('/notes');
                     } else {
                       setIsEditing(false);
-                      setTitle(note.title);
-                      setContent(note.content);
+                      setTitle(note?.title || '');
+                      setContent(note?.content || '');
                     }
                   }}
                 >
@@ -240,7 +398,7 @@ export default function NotePage() {
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="删除笔记">
-                  <IconButton color="error" onClick={handleDelete}>
+                  <IconButton color="error" onClick={confirmDelete}>
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -283,7 +441,7 @@ export default function NotePage() {
         >
           <Box sx={{ height: '100%' }}>
             <ChatPanel
-              noteId={id as number}
+              noteId={id !== 'new' ? parseInt(id as string) : 0}
               onInsertText={handleInsertText}
             />
           </Box>
@@ -298,21 +456,27 @@ export default function NotePage() {
         >
           <DialogTitle>关联数据库</DialogTitle>
           <DialogContent>
-            <List>
-              {mockDatabases.map((database) => (
-                <ListItem key={database.id}>
-                  <Checkbox
-                    edge="start"
-                    checked={selectedDatabases.indexOf(database.id) !== -1}
-                    onChange={() => handleDatabaseToggle(database.id)}
-                  />
-                  <ListItemText
-                    primary={database.name}
-                    secondary={database.description}
-                  />
-                </ListItem>
-              ))}
-            </List>
+            {databases.length === 0 ? (
+              <Typography color="text.secondary" sx={{ py: 2 }}>
+                暂无可用的数据库，请先创建数据库
+              </Typography>
+            ) : (
+              <List>
+                {databases.map((database) => (
+                  <ListItem key={database.id}>
+                    <Checkbox
+                      edge="start"
+                      checked={selectedDatabases.indexOf(database.id) !== -1}
+                      onChange={() => handleDatabaseToggle(database.id)}
+                    />
+                    <ListItemText
+                      primary={database.name}
+                      secondary={database.description}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDatabaseDialogOpen(false)}>
@@ -320,15 +484,57 @@ export default function NotePage() {
             </Button>
             <Button
               variant="contained"
-              onClick={() => {
-                console.log('保存数据库关联:', selectedDatabases);
-                setDatabaseDialogOpen(false);
-              }}
+              onClick={handleSaveDatabaseAssociations}
+              disabled={databases.length === 0}
             >
               保存
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* 删除确认对话框 */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+        >
+          <DialogTitle>确认删除</DialogTitle>
+          <DialogContent>
+            <Typography>
+              确定要删除笔记 "{title}" 吗？此操作不可撤销。
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>
+              取消
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                handleDelete();
+              }}
+            >
+              删除
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 提示消息 */}
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={() => setSnackbarOpen(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setSnackbarOpen(false)}
+            severity={snackbarSeverity}
+            sx={{ width: '100%' }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
       </Container>
     </>
   );

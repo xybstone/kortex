@@ -2,9 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 导入路由模块
-from backend.api.routes import auth_simple
-from backend.api.routes import llm_config
-from backend.api.routes import conversations
+from api.routes import auth_simple
+from api.routes import llm_config
+from api.routes import conversations
+from api.routes import notes
+from api.routes import databases
+from api.routes import llm
 
 app = FastAPI(
     title="Kortex API",
@@ -25,20 +28,15 @@ app.add_middleware(
 app.include_router(auth_simple.router, prefix="/api/auth", tags=["认证"])
 app.include_router(llm_config.router, prefix="/api/llm-config", tags=["大模型配置"])
 app.include_router(conversations.router, prefix="/api/conversations", tags=["对话"])
+app.include_router(notes.router, prefix="/api/notes", tags=["笔记"])
+app.include_router(databases.router, prefix="/api/databases", tags=["数据库"])
+app.include_router(llm.router, prefix="/api/llm", tags=["大模型"])
 
 @app.get("/")
 async def root():
     return {"message": "欢迎使用Kortex API"}
 
-@app.get("/api/notes")
-async def get_notes():
-    """获取笔记列表"""
-    return {"message": "笔记列表功能尚未实现"}
 
-@app.get("/api/databases")
-async def get_databases():
-    """获取数据库列表"""
-    return {"message": "数据库列表功能尚未实现"}
 
 @app.get("/api/llm/status")
 async def get_llm_status():
