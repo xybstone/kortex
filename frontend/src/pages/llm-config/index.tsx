@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Button, 
-  Grid, 
-  Card, 
-  CardContent, 
+import {
+  Container,
+  Typography,
+  Box,
+  Button,
+  Grid,
+  Card,
+  CardContent,
   CardActions,
   Tabs,
   Tab,
@@ -29,7 +29,9 @@ import {
   FormControlLabel,
   Divider,
   Tooltip,
-  Alert
+  Alert,
+  Snackbar,
+  CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -37,6 +39,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import Head from 'next/head';
+import { llmProviderApi, llmModelApi, llmRoleApi } from '@/services/api';
 
 // 模拟数据
 const mockProviders = [
@@ -88,29 +91,43 @@ function TabPanel(props: TabPanelProps) {
 
 export default function LLMConfig() {
   const [tabValue, setTabValue] = useState(0);
-  const [providers, setProviders] = useState(mockProviders);
-  const [models, setModels] = useState(mockModels);
-  const [roles, setRoles] = useState(mockRoles);
-  
+  const [providers, setProviders] = useState<any[]>([]);
+  const [models, setModels] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+
+  // 加载状态
+  const [loading, setLoading] = useState({
+    providers: false,
+    models: false,
+    roles: false
+  });
+
+  // 错误状态
+  const [error, setError] = useState({
+    providers: '',
+    models: '',
+    roles: ''
+  });
+
   // 对话框状态
   const [providerDialogOpen, setProviderDialogOpen] = useState(false);
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  
+
   // 编辑项
   const [editingProvider, setEditingProvider] = useState<any>(null);
   const [editingModel, setEditingModel] = useState<any>(null);
   const [editingRole, setEditingRole] = useState<any>(null);
   const [deleteItem, setDeleteItem] = useState<{type: string, id: number} | null>(null);
-  
+
   // 表单状态
   const [providerForm, setProviderForm] = useState({
     name: '',
     description: '',
     base_url: ''
   });
-  
+
   const [modelForm, setModelForm] = useState({
     name: '',
     provider_id: 0,
@@ -119,7 +136,7 @@ export default function LLMConfig() {
     max_tokens: 4096,
     temperature: 0.7
   });
-  
+
   const [roleForm, setRoleForm] = useState({
     name: '',
     description: '',
@@ -127,14 +144,98 @@ export default function LLMConfig() {
     model_id: 0,
     is_default: false
   });
-  
+
   // 显示API密钥
   const [showApiKey, setShowApiKey] = useState<{[key: number]: boolean}>({});
-  
+
+  // 提示消息
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error' | 'info' | 'warning'
+  });
+
+  // 加载数据
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  useEffect(() => {
+    if (providers.length > 0) {
+      fetchModels();
+    }
+  }, [providers]);
+
+  useEffect(() => {
+    if (models.length > 0) {
+      fetchRoles();
+    }
+  }, [models]);
+
+  // 获取供应商列表
+  const fetchProviders = async () => {
+    setLoading(prev => ({ ...prev, providers: true }));
+    setError(prev => ({ ...prev, providers: '' }));
+
+    try {
+      // 尝试从API获取数据
+      const data = await llmProviderApi.getProviders();
+      setProviders(data);
+    } catch (err) {
+      console.error('获取供应商列表失败:', err);
+      setError(prev => ({ ...prev, providers: '获取供应商列表失败' }));
+
+      // 如果API调用失败，使用模拟数据
+      setProviders(mockProviders);
+    } finally {
+      setLoading(prev => ({ ...prev, providers: false }));
+    }
+  };
+
+  // 获取模型列表
+  const fetchModels = async () => {
+    setLoading(prev => ({ ...prev, models: true }));
+    setError(prev => ({ ...prev, models: '' }));
+
+    try {
+      // 尝试从API获取数据
+      const data = await llmModelApi.getModels();
+      setModels(data);
+    } catch (err) {
+      console.error('获取模型列表失败:', err);
+      setError(prev => ({ ...prev, models: '获取模型列表失败' }));
+
+      // 如果API调用失败，使用模拟数据
+      setModels(mockModels);
+    } finally {
+      setLoading(prev => ({ ...prev, models: false }));
+    }
+  };
+
+  // 获取角色列表
+  const fetchRoles = async () => {
+    setLoading(prev => ({ ...prev, roles: true }));
+    setError(prev => ({ ...prev, roles: '' }));
+
+    try {
+      // 尝试从API获取数据
+      const data = await llmRoleApi.getRoles();
+      setRoles(data);
+    } catch (err) {
+      console.error('获取角色列表失败:', err);
+      setError(prev => ({ ...prev, roles: '获取角色列表失败' }));
+
+      // 如果API调用失败，使用模拟数据
+      setRoles(mockRoles);
+    } finally {
+      setLoading(prev => ({ ...prev, roles: false }));
+    }
+  };
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
-  
+
   // 供应商相关处理函数
   const handleAddProvider = () => {
     setEditingProvider(null);
@@ -145,7 +246,7 @@ export default function LLMConfig() {
     });
     setProviderDialogOpen(true);
   };
-  
+
   const handleEditProvider = (provider: any) => {
     setEditingProvider(provider);
     setProviderForm({
@@ -155,30 +256,61 @@ export default function LLMConfig() {
     });
     setProviderDialogOpen(true);
   };
-  
+
   const handleDeleteProvider = (provider: any) => {
     setDeleteItem({type: 'provider', id: provider.id});
     setDeleteConfirmOpen(true);
   };
-  
-  const handleSaveProvider = () => {
-    if (editingProvider) {
-      // 更新供应商
-      const updatedProviders = providers.map(p => 
-        p.id === editingProvider.id ? {...p, ...providerForm} : p
-      );
-      setProviders(updatedProviders);
-    } else {
-      // 添加新供应商
-      const newProvider = {
-        id: Math.max(...providers.map(p => p.id), 0) + 1,
-        ...providerForm
-      };
-      setProviders([...providers, newProvider]);
+
+  const handleSaveProvider = async () => {
+    try {
+      if (editingProvider) {
+        // 更新供应商
+        const updatedProvider = await llmProviderApi.updateProvider(editingProvider.id, providerForm);
+        setProviders(providers.map(p => p.id === editingProvider.id ? updatedProvider : p));
+        setSnackbar({
+          open: true,
+          message: '供应商更新成功',
+          severity: 'success'
+        });
+      } else {
+        // 添加新供应商
+        const newProvider = await llmProviderApi.createProvider(providerForm);
+        setProviders([...providers, newProvider]);
+        setSnackbar({
+          open: true,
+          message: '供应商添加成功',
+          severity: 'success'
+        });
+      }
+      setProviderDialogOpen(false);
+    } catch (err) {
+      console.error('保存供应商失败:', err);
+      setSnackbar({
+        open: true,
+        message: '保存供应商失败',
+        severity: 'error'
+      });
+
+      // 如果API调用失败，使用本地模拟操作
+      if (editingProvider) {
+        // 更新供应商
+        const updatedProviders = providers.map(p =>
+          p.id === editingProvider.id ? {...p, ...providerForm} : p
+        );
+        setProviders(updatedProviders);
+      } else {
+        // 添加新供应商
+        const newProvider = {
+          id: Math.max(...providers.map(p => p.id || 0), 0) + 1,
+          ...providerForm
+        };
+        setProviders([...providers, newProvider]);
+      }
+      setProviderDialogOpen(false);
     }
-    setProviderDialogOpen(false);
   };
-  
+
   // 模型相关处理函数
   const handleAddModel = () => {
     setEditingModel(null);
@@ -192,7 +324,7 @@ export default function LLMConfig() {
     });
     setModelDialogOpen(true);
   };
-  
+
   const handleEditModel = (model: any) => {
     setEditingModel(model);
     setModelForm({
@@ -205,30 +337,61 @@ export default function LLMConfig() {
     });
     setModelDialogOpen(true);
   };
-  
+
   const handleDeleteModel = (model: any) => {
     setDeleteItem({type: 'model', id: model.id});
     setDeleteConfirmOpen(true);
   };
-  
-  const handleSaveModel = () => {
-    if (editingModel) {
-      // 更新模型
-      const updatedModels = models.map(m => 
-        m.id === editingModel.id ? {...m, ...modelForm} : m
-      );
-      setModels(updatedModels);
-    } else {
-      // 添加新模型
-      const newModel = {
-        id: Math.max(...models.map(m => m.id), 0) + 1,
-        ...modelForm
-      };
-      setModels([...models, newModel]);
+
+  const handleSaveModel = async () => {
+    try {
+      if (editingModel) {
+        // 更新模型
+        const updatedModel = await llmModelApi.updateModel(editingModel.id, modelForm);
+        setModels(models.map(m => m.id === editingModel.id ? updatedModel : m));
+        setSnackbar({
+          open: true,
+          message: '模型更新成功',
+          severity: 'success'
+        });
+      } else {
+        // 添加新模型
+        const newModel = await llmModelApi.createModel(modelForm);
+        setModels([...models, newModel]);
+        setSnackbar({
+          open: true,
+          message: '模型添加成功',
+          severity: 'success'
+        });
+      }
+      setModelDialogOpen(false);
+    } catch (err) {
+      console.error('保存模型失败:', err);
+      setSnackbar({
+        open: true,
+        message: '保存模型失败',
+        severity: 'error'
+      });
+
+      // 如果API调用失败，使用本地模拟操作
+      if (editingModel) {
+        // 更新模型
+        const updatedModels = models.map(m =>
+          m.id === editingModel.id ? {...m, ...modelForm} : m
+        );
+        setModels(updatedModels);
+      } else {
+        // 添加新模型
+        const newModel = {
+          id: Math.max(...models.map(m => m.id || 0), 0) + 1,
+          ...modelForm
+        };
+        setModels([...models, newModel]);
+      }
+      setModelDialogOpen(false);
     }
-    setModelDialogOpen(false);
   };
-  
+
   // 角色相关处理函数
   const handleAddRole = () => {
     setEditingRole(null);
@@ -241,7 +404,7 @@ export default function LLMConfig() {
     });
     setRoleDialogOpen(true);
   };
-  
+
   const handleEditRole = (role: any) => {
     setEditingRole(role);
     setRoleForm({
@@ -253,46 +416,113 @@ export default function LLMConfig() {
     });
     setRoleDialogOpen(true);
   };
-  
+
   const handleDeleteRole = (role: any) => {
     setDeleteItem({type: 'role', id: role.id});
     setDeleteConfirmOpen(true);
   };
-  
-  const handleSaveRole = () => {
-    if (editingRole) {
-      // 更新角色
-      const updatedRoles = roles.map(r => 
-        r.id === editingRole.id ? {...r, ...roleForm} : r
-      );
-      setRoles(updatedRoles);
-    } else {
-      // 添加新角色
-      const newRole = {
-        id: Math.max(...roles.map(r => r.id), 0) + 1,
-        ...roleForm
-      };
-      setRoles([...roles, newRole]);
+
+  const handleSaveRole = async () => {
+    try {
+      if (editingRole) {
+        // 更新角色
+        const updatedRole = await llmRoleApi.updateRole(editingRole.id, roleForm);
+        setRoles(roles.map(r => r.id === editingRole.id ? updatedRole : r));
+        setSnackbar({
+          open: true,
+          message: '角色更新成功',
+          severity: 'success'
+        });
+      } else {
+        // 添加新角色
+        const newRole = await llmRoleApi.createRole(roleForm);
+        setRoles([...roles, newRole]);
+        setSnackbar({
+          open: true,
+          message: '角色添加成功',
+          severity: 'success'
+        });
+      }
+      setRoleDialogOpen(false);
+    } catch (err) {
+      console.error('保存角色失败:', err);
+      setSnackbar({
+        open: true,
+        message: '保存角色失败',
+        severity: 'error'
+      });
+
+      // 如果API调用失败，使用本地模拟操作
+      if (editingRole) {
+        // 更新角色
+        const updatedRoles = roles.map(r =>
+          r.id === editingRole.id ? {...r, ...roleForm} : r
+        );
+        setRoles(updatedRoles);
+      } else {
+        // 添加新角色
+        const newRole = {
+          id: Math.max(...roles.map(r => r.id || 0), 0) + 1,
+          ...roleForm
+        };
+        setRoles([...roles, newRole]);
+      }
+      setRoleDialogOpen(false);
     }
-    setRoleDialogOpen(false);
   };
-  
+
   // 删除确认
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteItem) return;
-    
-    if (deleteItem.type === 'provider') {
-      setProviders(providers.filter(p => p.id !== deleteItem.id));
-    } else if (deleteItem.type === 'model') {
-      setModels(models.filter(m => m.id !== deleteItem.id));
-    } else if (deleteItem.type === 'role') {
-      setRoles(roles.filter(r => r.id !== deleteItem.id));
+
+    try {
+      if (deleteItem.type === 'provider') {
+        await llmProviderApi.deleteProvider(deleteItem.id);
+        setProviders(providers.filter(p => p.id !== deleteItem.id));
+        setSnackbar({
+          open: true,
+          message: '供应商删除成功',
+          severity: 'success'
+        });
+      } else if (deleteItem.type === 'model') {
+        await llmModelApi.deleteModel(deleteItem.id);
+        setModels(models.filter(m => m.id !== deleteItem.id));
+        setSnackbar({
+          open: true,
+          message: '模型删除成功',
+          severity: 'success'
+        });
+      } else if (deleteItem.type === 'role') {
+        await llmRoleApi.deleteRole(deleteItem.id);
+        setRoles(roles.filter(r => r.id !== deleteItem.id));
+        setSnackbar({
+          open: true,
+          message: '角色删除成功',
+          severity: 'success'
+        });
+      }
+    } catch (err) {
+      console.error('删除失败:', err);
+      setSnackbar({
+        open: true,
+        message: `删除${deleteItem.type === 'provider' ? '供应商' : deleteItem.type === 'model' ? '模型' : '角色'}失败`,
+        severity: 'error'
+      });
+
+      // 如果API调用失败，使用本地模拟操作
+      if (deleteItem.type === 'provider') {
+        setProviders(providers.filter(p => p.id !== deleteItem.id));
+      } else if (deleteItem.type === 'model') {
+        setModels(models.filter(m => m.id !== deleteItem.id));
+      } else if (deleteItem.type === 'role') {
+        setRoles(roles.filter(r => r.id !== deleteItem.id));
+      }
     }
-    
+
     setDeleteConfirmOpen(false);
     setDeleteItem(null);
   };
-  
+
   // 切换API密钥可见性
   const toggleApiKeyVisibility = (modelId: number) => {
     setShowApiKey(prev => ({
@@ -300,17 +530,22 @@ export default function LLMConfig() {
       [modelId]: !prev[modelId]
     }));
   };
-  
+
   // 获取供应商名称
   const getProviderName = (providerId: number) => {
     const provider = providers.find(p => p.id === providerId);
     return provider ? provider.name : '未知供应商';
   };
-  
+
   // 获取模型名称
   const getModelName = (modelId: number) => {
     const model = models.find(m => m.id === modelId);
     return model ? model.name : '未知模型';
+  };
+
+  // 关闭提示消息
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   return (
@@ -323,7 +558,16 @@ export default function LLMConfig() {
         <Typography variant="h4" component="h1" gutterBottom>
           大模型配置
         </Typography>
-        
+
+        {/* 提示消息 */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          message={snackbar.message}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        />
+
         <Paper sx={{ width: '100%', mb: 2 }}>
           <Tabs
             value={tabValue}
@@ -336,56 +580,66 @@ export default function LLMConfig() {
             <Tab label="模型" />
             <Tab label="角色" />
           </Tabs>
-          
+
           {/* 供应商面板 */}
           <TabPanel value={tabValue} index={0}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleAddProvider}
               >
                 添加供应商
               </Button>
             </Box>
-            
-            <List>
-              {providers.map((provider) => (
-                <ListItem key={provider.id} divider>
-                  <ListItemText
-                    primary={provider.name}
-                    secondary={
-                      <>
-                        {provider.description}
-                        <br />
-                        {provider.base_url && `API地址: ${provider.base_url}`}
-                      </>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton edge="end" onClick={() => handleEditProvider(provider)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton edge="end" onClick={() => handleDeleteProvider(provider)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-              
-              {providers.length === 0 && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  暂无供应商，请添加供应商
-                </Alert>
-              )}
-            </List>
+
+            {loading.providers ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : error.providers ? (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error.providers}
+              </Alert>
+            ) : (
+              <List>
+                {providers.map((provider) => (
+                  <ListItem key={provider.id} divider>
+                    <ListItemText
+                      primary={provider.name}
+                      secondary={
+                        <>
+                          {provider.description}
+                          <br />
+                          {provider.base_url && `API地址: ${provider.base_url}`}
+                        </>
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton edge="end" onClick={() => handleEditProvider(provider)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton edge="end" onClick={() => handleDeleteProvider(provider)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+
+                {providers.length === 0 && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    暂无供应商，请添加供应商
+                  </Alert>
+                )}
+              </List>
+            )}
           </TabPanel>
-          
+
           {/* 模型面板 */}
           <TabPanel value={tabValue} index={1}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleAddModel}
                 disabled={providers.length === 0}
@@ -393,10 +647,18 @@ export default function LLMConfig() {
                 添加模型
               </Button>
             </Box>
-            
+
             {providers.length === 0 ? (
               <Alert severity="warning">
                 请先添加供应商
+              </Alert>
+            ) : loading.models ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : error.models ? (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error.models}
               </Alert>
             ) : (
               <List>
@@ -429,7 +691,7 @@ export default function LLMConfig() {
                     </ListItemSecondaryAction>
                   </ListItem>
                 ))}
-                
+
                 {models.length === 0 && (
                   <Alert severity="info" sx={{ mt: 2 }}>
                     暂无模型，请添加模型
@@ -438,12 +700,12 @@ export default function LLMConfig() {
               </List>
             )}
           </TabPanel>
-          
+
           {/* 角色面板 */}
           <TabPanel value={tabValue} index={2}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 startIcon={<AddIcon />}
                 onClick={handleAddRole}
                 disabled={models.length === 0}
@@ -451,10 +713,18 @@ export default function LLMConfig() {
                 添加角色
               </Button>
             </Box>
-            
+
             {models.length === 0 ? (
               <Alert severity="warning">
                 请先添加模型
+              </Alert>
+            ) : loading.roles ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : error.roles ? (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error.roles}
               </Alert>
             ) : (
               <List>
@@ -491,7 +761,7 @@ export default function LLMConfig() {
                     </ListItemSecondaryAction>
                   </ListItem>
                 ))}
-                
+
                 {roles.length === 0 && (
                   <Alert severity="info" sx={{ mt: 2 }}>
                     暂无角色，请添加角色
@@ -501,10 +771,10 @@ export default function LLMConfig() {
             )}
           </TabPanel>
         </Paper>
-        
+
         {/* 供应商对话框 */}
-        <Dialog 
-          open={providerDialogOpen} 
+        <Dialog
+          open={providerDialogOpen}
           onClose={() => setProviderDialogOpen(false)}
           maxWidth="sm"
           fullWidth
@@ -543,7 +813,7 @@ export default function LLMConfig() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setProviderDialogOpen(false)}>取消</Button>
-            <Button 
+            <Button
               onClick={handleSaveProvider}
               variant="contained"
               disabled={!providerForm.name}
@@ -552,10 +822,10 @@ export default function LLMConfig() {
             </Button>
           </DialogActions>
         </Dialog>
-        
+
         {/* 模型对话框 */}
-        <Dialog 
-          open={modelDialogOpen} 
+        <Dialog
+          open={modelDialogOpen}
           onClose={() => setModelDialogOpen(false)}
           maxWidth="sm"
           fullWidth
@@ -632,7 +902,7 @@ export default function LLMConfig() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setModelDialogOpen(false)}>取消</Button>
-            <Button 
+            <Button
               onClick={handleSaveModel}
               variant="contained"
               disabled={!modelForm.name || !modelForm.provider_id}
@@ -641,10 +911,10 @@ export default function LLMConfig() {
             </Button>
           </DialogActions>
         </Dialog>
-        
+
         {/* 角色对话框 */}
-        <Dialog 
-          open={roleDialogOpen} 
+        <Dialog
+          open={roleDialogOpen}
           onClose={() => setRoleDialogOpen(false)}
           maxWidth="sm"
           fullWidth
@@ -708,7 +978,7 @@ export default function LLMConfig() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setRoleDialogOpen(false)}>取消</Button>
-            <Button 
+            <Button
               onClick={handleSaveRole}
               variant="contained"
               disabled={!roleForm.name || !roleForm.model_id || !roleForm.system_prompt}
@@ -717,7 +987,7 @@ export default function LLMConfig() {
             </Button>
           </DialogActions>
         </Dialog>
-        
+
         {/* 删除确认对话框 */}
         <Dialog
           open={deleteConfirmOpen}

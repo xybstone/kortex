@@ -4,6 +4,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import Layout from '@/components/Layout';
+import { AuthProvider } from '@/contexts/AuthContext';
+import AuthGuard from '@/components/AuthGuard';
 
 // 创建React Query客户端
 const queryClient = new QueryClient();
@@ -42,9 +44,13 @@ export default function App({ Component, pageProps }: AppProps) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
+        <AuthProvider>
+          <AuthGuard>
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          </AuthGuard>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

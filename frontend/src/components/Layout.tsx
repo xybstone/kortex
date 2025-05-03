@@ -1,25 +1,31 @@
 import { ReactNode, useState } from 'react';
-import { 
-  AppBar, 
-  Box, 
-  Toolbar, 
-  Typography, 
-  Button, 
+import {
+  AppBar,
+  Box,
+  Toolbar,
+  Typography,
+  Button,
   IconButton,
   Drawer,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Divider
+  Divider,
+  Menu,
+  MenuItem,
+  Avatar
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import NoteIcon from '@mui/icons-material/Note';
 import StorageIcon from '@mui/icons-material/Storage';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -27,7 +33,22 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const router = useRouter();
+  const { user, logout, isAuthenticated } = useAuth();
+
+  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleClose();
+    logout();
+  };
 
   const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
     if (
@@ -45,6 +66,7 @@ export default function Layout({ children }: LayoutProps) {
     { text: '笔记', icon: <NoteIcon />, path: '/notes' },
     { text: '数据库', icon: <StorageIcon />, path: '/databases' },
     { text: '大模型', icon: <SmartToyIcon />, path: '/llm' },
+    { text: '大模型配置', icon: <SmartToyIcon />, path: '/llm-config' },
   ];
 
   return (
@@ -66,12 +88,65 @@ export default function Layout({ children }: LayoutProps) {
               Kortex
             </Link>
           </Typography>
-          <Button color="inherit" onClick={() => router.push('/login')}>
-            登录
-          </Button>
+
+          {isAuthenticated ? (
+            <div>
+              <IconButton
+                size="large"
+                aria-label="account of current user"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                onClick={handleMenu}
+                color="inherit"
+              >
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                  {user?.full_name ? user.full_name[0].toUpperCase() : user?.email[0].toUpperCase()}
+                </Avatar>
+              </IconButton>
+              <Menu
+                id="menu-appbar"
+                anchorEl={anchorEl}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+              >
+                <MenuItem onClick={() => { handleClose(); router.push('/profile'); }}>
+                  <ListItemIcon>
+                    <AccountCircleIcon fontSize="small" />
+                  </ListItemIcon>
+                  个人资料
+                </MenuItem>
+                <MenuItem onClick={() => { handleClose(); router.push('/settings'); }}>
+                  <ListItemIcon>
+                    <SettingsIcon fontSize="small" />
+                  </ListItemIcon>
+                  设置
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon>
+                    <LogoutIcon fontSize="small" />
+                  </ListItemIcon>
+                  退出登录
+                </MenuItem>
+              </Menu>
+            </div>
+          ) : (
+            <Button color="inherit" onClick={() => router.push('/login')}>
+              登录
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
-      
+
       <Drawer
         anchor="left"
         open={drawerOpen}
@@ -85,9 +160,9 @@ export default function Layout({ children }: LayoutProps) {
         >
           <List>
             {menuItems.map((item) => (
-              <ListItem 
-                button 
-                key={item.text} 
+              <ListItem
+                button
+                key={item.text}
                 onClick={() => router.push(item.path)}
                 selected={router.pathname.startsWith(item.path)}
               >
@@ -100,16 +175,39 @@ export default function Layout({ children }: LayoutProps) {
           </List>
           <Divider />
           <List>
-            <ListItem button onClick={() => router.push('/profile')}>
-              <ListItemIcon>
-                <AccountCircleIcon />
-              </ListItemIcon>
-              <ListItemText primary="个人资料" />
-            </ListItem>
+            {isAuthenticated ? (
+              <>
+                <ListItem button onClick={() => router.push('/profile')}>
+                  <ListItemIcon>
+                    <AccountCircleIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="个人资料" />
+                </ListItem>
+                <ListItem button onClick={() => router.push('/settings')}>
+                  <ListItemIcon>
+                    <SettingsIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="设置" />
+                </ListItem>
+                <ListItem button onClick={logout}>
+                  <ListItemIcon>
+                    <LogoutIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="退出登录" />
+                </ListItem>
+              </>
+            ) : (
+              <ListItem button onClick={() => router.push('/login')}>
+                <ListItemIcon>
+                  <AccountCircleIcon />
+                </ListItemIcon>
+                <ListItemText primary="登录" />
+              </ListItem>
+            )}
           </List>
         </Box>
       </Drawer>
-      
+
       <Box component="main" sx={{ flexGrow: 1 }}>
         {children}
       </Box>

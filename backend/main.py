@@ -1,12 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-try:
-    from api.routes import llm_config, conversations
-except ImportError:
-    print("警告: 无法导入路由模块，将使用模拟路由")
-    llm_config = None
-    conversations = None
+# 导入路由模块
+from backend.api.routes import auth_simple
+from backend.api.routes import llm_config
+from backend.api.routes import conversations
 
 app = FastAPI(
     title="Kortex API",
@@ -24,10 +22,9 @@ app.add_middleware(
 )
 
 # 注册路由
-if llm_config:
-    app.include_router(llm_config.router, prefix="/api/llm-config", tags=["大模型配置"])
-if conversations:
-    app.include_router(conversations.router, prefix="/api/conversations", tags=["对话"])
+app.include_router(auth_simple.router, prefix="/api/auth", tags=["认证"])
+app.include_router(llm_config.router, prefix="/api/llm-config", tags=["大模型配置"])
+app.include_router(conversations.router, prefix="/api/conversations", tags=["对话"])
 
 @app.get("/")
 async def root():

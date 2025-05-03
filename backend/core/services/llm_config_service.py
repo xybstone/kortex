@@ -15,7 +15,9 @@ def create_provider(db: Session, provider: LLMProviderCreate) -> LLMProvider:
     db_provider = LLMProvider(
         name=provider.name,
         description=provider.description,
-        base_url=provider.base_url
+        base_url=provider.base_url,
+        user_id=provider.user_id,
+        is_public=provider.is_public
     )
     db.add(db_provider)
     db.commit()
@@ -23,14 +25,27 @@ def create_provider(db: Session, provider: LLMProviderCreate) -> LLMProvider:
     return db_provider
 
 def get_providers(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
-    search: Optional[str] = None
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    user_id: Optional[int] = None
 ) -> List[LLMProvider]:
     """获取LLM供应商列表"""
     query = db.query(LLMProvider)
-    
+
+    # 按用户ID过滤
+    if user_id:
+        query = query.filter(
+            or_(
+                LLMProvider.user_id == user_id,
+                LLMProvider.is_public == True
+            )
+        )
+    else:
+        # 如果没有指定用户ID，只返回公开的供应商
+        query = query.filter(LLMProvider.is_public == True)
+
     if search:
         query = query.filter(
             or_(
@@ -38,7 +53,7 @@ def get_providers(
                 LLMProvider.description.ilike(f"%{search}%")
             )
         )
-    
+
     return query.offset(skip).limit(limit).all()
 
 def get_provider(db: Session, provider_id: int) -> Optional[LLMProvider]:
@@ -48,10 +63,10 @@ def get_provider(db: Session, provider_id: int) -> Optional[LLMProvider]:
 def update_provider(db: Session, provider_id: int, provider: LLMProviderUpdate) -> LLMProvider:
     """更新LLM供应商"""
     db_provider = db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
-    
-    for key, value in provider.dict(exclude_unset=True).items():
+
+    for key, value in provider.model_dump(exclude_unset=True).items():
         setattr(db_provider, key, value)
-    
+
     db.commit()
     db.refresh(db_provider)
     return db_provider
@@ -67,8 +82,10 @@ def create_model(db: Session, model: LLMModelCreate) -> LLMModel:
     db_model = LLMModel(
         name=model.name,
         provider_id=model.provider_id,
+        user_id=model.user_id,
         api_key=model.api_key,
         is_active=model.is_active,
+        is_public=model.is_public,
         max_tokens=model.max_tokens,
         temperature=model.temperature
     )
@@ -78,21 +95,34 @@ def create_model(db: Session, model: LLMModelCreate) -> LLMModel:
     return db_model
 
 def get_models(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None,
-    provider_id: Optional[int] = None
+    provider_id: Optional[int] = None,
+    user_id: Optional[int] = None
 ) -> List[LLMModel]:
     """获取LLM模型列表"""
     query = db.query(LLMModel)
-    
+
     if provider_id:
         query = query.filter(LLMModel.provider_id == provider_id)
-    
+
+    # 按用户ID过滤
+    if user_id:
+        query = query.filter(
+            or_(
+                LLMModel.user_id == user_id,
+                LLMModel.is_public == True
+            )
+        )
+    else:
+        # 如果没有指定用户ID，只返回公开的模型
+        query = query.filter(LLMModel.is_public == True)
+
     if search:
         query = query.filter(LLMModel.name.ilike(f"%{search}%"))
-    
+
     return query.offset(skip).limit(limit).all()
 
 def get_model(db: Session, model_id: int) -> Optional[LLMModel]:
@@ -102,10 +132,10 @@ def get_model(db: Session, model_id: int) -> Optional[LLMModel]:
 def update_model(db: Session, model_id: int, model: LLMModelUpdate) -> LLMModel:
     """更新LLM模型"""
     db_model = db.query(LLMModel).filter(LLMModel.id == model_id).first()
-    
-    for key, value in model.dict(exclude_unset=True).items():
+
+    for key, value in model.model_dump(exclude_unset=True).items():
         setattr(db_model, key, value)
-    
+
     db.commit()
     db.refresh(db_model)
     return db_model
@@ -124,13 +154,15 @@ def create_role(db: Session, role: LLMRoleCreate) -> LLMRole:
             LLMRole.model_id == role.model_id,
             LLMRole.is_default == True
         ).update({"is_default": False})
-    
+
     db_role = LLMRole(
         name=role.name,
         description=role.description,
         system_prompt=role.system_prompt,
         model_id=role.model_id,
-        is_default=role.is_default
+        user_id=role.user_id,
+        is_default=role.is_default,
+        is_public=role.is_public
     )
     db.add(db_role)
     db.commit()
@@ -138,18 +170,31 @@ def create_role(db: Session, role: LLMRoleCreate) -> LLMRole:
     return db_role
 
 def get_roles(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None,
-    model_id: Optional[int] = None
+    model_id: Optional[int] = None,
+    user_id: Optional[int] = None
 ) -> List[LLMRole]:
     """获取LLM角色列表"""
     query = db.query(LLMRole)
-    
+
     if model_id:
         query = query.filter(LLMRole.model_id == model_id)
-    
+
+    # 按用户ID过滤
+    if user_id:
+        query = query.filter(
+            or_(
+                LLMRole.user_id == user_id,
+                LLMRole.is_public == True
+            )
+        )
+    else:
+        # 如果没有指定用户ID，只返回公开的角色
+        query = query.filter(LLMRole.is_public == True)
+
     if search:
         query = query.filter(
             or_(
@@ -157,7 +202,7 @@ def get_roles(
                 LLMRole.description.ilike(f"%{search}%")
             )
         )
-    
+
     return query.offset(skip).limit(limit).all()
 
 def get_role(db: Session, role_id: int) -> Optional[LLMRole]:
@@ -167,7 +212,7 @@ def get_role(db: Session, role_id: int) -> Optional[LLMRole]:
 def update_role(db: Session, role_id: int, role: LLMRoleUpdate) -> LLMRole:
     """更新LLM角色"""
     db_role = db.query(LLMRole).filter(LLMRole.id == role_id).first()
-    
+
     # 如果要设置为默认角色，先将该模型的其他默认角色取消默认
     if role.is_default and role.is_default != db_role.is_default:
         db.query(LLMRole).filter(
@@ -175,10 +220,10 @@ def update_role(db: Session, role_id: int, role: LLMRoleUpdate) -> LLMRole:
             LLMRole.id != role_id,
             LLMRole.is_default == True
         ).update({"is_default": False})
-    
-    for key, value in role.dict(exclude_unset=True).items():
+
+    for key, value in role.model_dump(exclude_unset=True).items():
         setattr(db_role, key, value)
-    
+
     db.commit()
     db.refresh(db_role)
     return db_role

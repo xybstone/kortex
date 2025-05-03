@@ -33,7 +33,7 @@ def create_user(db: Session, user: UserCreate) -> User:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="该邮箱已被注册"
         )
-    
+
     # 创建新用户
     hashed_password = get_password_hash(user.password)
     db_user = User(
@@ -58,12 +58,12 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """创建访问令牌"""
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
     return encoded_jwt

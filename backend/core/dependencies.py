@@ -10,7 +10,7 @@ from backend.core.config import settings
 from backend.models.schemas import TokenData, UserResponse
 from backend.core.services import auth_service
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 def get_db():
     """获取数据库会话"""
@@ -21,7 +21,7 @@ def get_db():
         db.close()
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), 
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> UserResponse:
     """获取当前用户"""
@@ -40,7 +40,7 @@ async def get_current_user(
         token_data = TokenData(email=email)
     except JWTError:
         raise credentials_exception
-    
+
     user = auth_service.get_user_by_email(db, email=token_data.email)
     if user is None:
         raise credentials_exception

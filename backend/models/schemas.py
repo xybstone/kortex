@@ -10,9 +10,15 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserUpdate(UserBase):
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    is_admin: bool = False
     created_at: datetime
 
     class Config:
@@ -122,17 +128,20 @@ class LLMProviderBase(BaseModel):
     name: str
     description: Optional[str] = None
     base_url: Optional[str] = None
+    is_public: bool = True
 
 class LLMProviderCreate(LLMProviderBase):
-    pass
+    user_id: Optional[int] = None
 
 class LLMProviderUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     base_url: Optional[str] = None
+    is_public: Optional[bool] = None
 
 class LLMProviderResponse(LLMProviderBase):
     id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -145,22 +154,25 @@ class LLMModelBase(BaseModel):
     provider_id: int
     api_key: Optional[str] = None
     is_active: bool = True
+    is_public: bool = False
     max_tokens: int = 4096
     temperature: float = 0.7
 
 class LLMModelCreate(LLMModelBase):
-    pass
+    user_id: Optional[int] = None
 
 class LLMModelUpdate(BaseModel):
     name: Optional[str] = None
     provider_id: Optional[int] = None
     api_key: Optional[str] = None
     is_active: Optional[bool] = None
+    is_public: Optional[bool] = None
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
 
 class LLMModelResponse(LLMModelBase):
     id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     provider: LLMProviderResponse
@@ -175,9 +187,10 @@ class LLMRoleBase(BaseModel):
     system_prompt: str
     model_id: int
     is_default: bool = False
+    is_public: bool = False
 
 class LLMRoleCreate(LLMRoleBase):
-    pass
+    user_id: Optional[int] = None
 
 class LLMRoleUpdate(BaseModel):
     name: Optional[str] = None
@@ -185,9 +198,11 @@ class LLMRoleUpdate(BaseModel):
     system_prompt: Optional[str] = None
     model_id: Optional[int] = None
     is_default: Optional[bool] = None
+    is_public: Optional[bool] = None
 
 class LLMRoleResponse(LLMRoleBase):
     id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     model: LLMModelResponse
@@ -216,10 +231,11 @@ class ConversationBase(BaseModel):
     role_id: int
 
 class ConversationCreate(ConversationBase):
-    pass
+    user_id: Optional[int] = None
 
 class ConversationResponse(ConversationBase):
     id: int
+    user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     messages: List[MessageResponse] = []

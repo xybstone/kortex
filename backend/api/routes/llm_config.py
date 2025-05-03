@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
-from backend.core.dependencies import get_db
+from backend.core.dependencies import get_db, get_current_user
 from backend.models.schemas import (
     LLMProviderCreate, LLMProviderUpdate, LLMProviderResponse,
     LLMModelCreate, LLMModelUpdate, LLMModelResponse,
-    LLMRoleCreate, LLMRoleUpdate, LLMRoleResponse
+    LLMRoleCreate, LLMRoleUpdate, LLMRoleResponse,
+    UserResponse
 )
 from backend.core.services import llm_config_service
 
@@ -14,14 +15,24 @@ router = APIRouter()
 
 # LLM供应商路由
 @router.post("/providers", response_model=LLMProviderResponse, status_code=status.HTTP_201_CREATED)
-def create_provider(provider: LLMProviderCreate, db: Session = Depends(get_db)):
+def create_provider(
+    provider: LLMProviderCreate,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
     """创建新的LLM供应商"""
+    # 验证用户权限（管理员才能创建供应商）
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有管理员可以创建供应商"
+        )
     return llm_config_service.create_provider(db=db, provider=provider)
 
 @router.get("/providers", response_model=List[LLMProviderResponse])
 def get_providers(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -61,18 +72,18 @@ def create_model(model: LLMModelCreate, db: Session = Depends(get_db)):
 
 @router.get("/models", response_model=List[LLMModelResponse])
 def get_models(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None,
     provider_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     """获取LLM模型列表"""
     return llm_config_service.get_models(
-        db=db, 
-        skip=skip, 
-        limit=limit, 
-        search=search, 
+        db=db,
+        skip=skip,
+        limit=limit,
+        search=search,
         provider_id=provider_id
     )
 
@@ -109,18 +120,18 @@ def create_role(role: LLMRoleCreate, db: Session = Depends(get_db)):
 
 @router.get("/roles", response_model=List[LLMRoleResponse])
 def get_roles(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None,
     model_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     """获取LLM角色列表"""
     return llm_config_service.get_roles(
-        db=db, 
-        skip=skip, 
-        limit=limit, 
-        search=search, 
+        db=db,
+        skip=skip,
+        limit=limit,
+        search=search,
         model_id=model_id
     )
 
