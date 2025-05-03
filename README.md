@@ -1,96 +1,107 @@
-# kortex
-"Knowledge" 和 "Cortex"，暗示智能与知识处理
+# Kortex
 
-项目语言：Python
+## 项目概述
 
-项目版本：0.0.1
+**项目名称**：Kortex
+**项目简介**：一个在线笔记工具，支持Markdown编辑、数据库管理和大模型集成
+**项目语言**：Python (后端)，JavaScript/TypeScript (前端)
+**项目版本**：0.1.0
 
-使用框架：FastAPI，Langchain，Cognee等
+## 主要功能
 
-主要功能：
+- **Markdown笔记编辑器**：类似于Obsidian的笔记编辑体验
+- **数据库管理**：支持创建、导入和管理数据库
+- **笔记与数据库关联**：在笔记中引用和可视化数据
+- **大模型集成**：利用AI分析数据并生成笔记内容
 
-1. 提供一个基于 Python 的智能与知识处理的工具，可以实现对文本的摘要、关键词抽取、情感分析、文本分类、语义理解、实体识别、文本生成等功能。
+## 项目架构
 
-2. 将文件信息整理输入到向量数据库和图库中，以便在后续的处理中使用。
+### 前端 (Frontend)
 
-3. 使用大模型对已经处理的数据进行分类、情感分析、语义理解、实体识别、文本生成等功能。  
+- **技术栈**：React + TypeScript
+- **主要组件**：
+  - Markdown编辑器
+  - 数据库管理界面
+  - 数据可视化组件
+  - 大模型交互界面
 
-## Kortex 项目架构设计
+### 后端 (Backend)
 
-### 1. 系统架构
+- **技术栈**：FastAPI + SQLAlchemy
+- **主要模块**：
+  - API层：处理HTTP请求
+  - 核心层：实现业务逻辑
+  - 服务层：集成第三方服务
+  - 数据层：管理数据存储和访问
 
-```
-kortex/
-├── api/                # FastAPI 接口层
-├── core/              # 核心处理模块
-├── models/            # 数据模型
-├── services/          # 业务服务层
-├── storage/           # 存储层
-├── utils/             # 工具函数
-└── tests/             # 单元测试
-```
+### 数据库
 
-### 2. 核心模块设计
+- **笔记数据**：存储用户笔记内容和元数据
+- **用户数据**：管理用户账户和权限
+- **数据库管理**：支持用户创建的数据集
+- **关联数据**：管理笔记与数据库之间的关联
 
-#### 2.1 文本处理模块 (core/text_processor.py)
-- 文本摘要生成
-- 关键词提取
-- 情感分析
-- 文本分类
-- 实体识别
+## 开发路线图
 
-#### 2.2 知识存储模块 (storage/)
-- 向量数据库接入 (Milvus/FAISS)
-- 图数据库接入 (Neo4j)
-- 文档存储 (MongoDB)
+### 一期
 
-#### 2.3 大模型集成模块 (services/llm_service.py)
-- LangChain 框架集成
-- 模型调用接口封装
-- 提示词模板管理
+- [x] 项目的架构设计
+- [ ] 在线笔记本的功能开发
+- [ ] 数据的功能开发，支持导入数据(Excel, CSV, JSON)
+- [ ] 大模型API接入功能开发
+- [ ] 笔记与数据库的关联功能开发（可以在笔记中引用数据）
 
-### 3. API 设计
+### 二期
 
-```python
-# api/endpoints/text.py
-@router.post("/analyze")
-async def analyze_text(text: str):
-    """文本分析接口"""
+- [ ] 用户认证与授权系统
+- [ ] 笔记版本控制
+- [ ] 协作编辑功能
+- [ ] 高级数据可视化
+- [ ] 移动端适配
 
-@router.post("/summary")
-async def generate_summary(text: str):
-    """文本摘要接口"""
+## 安装与使用
 
-@router.post("/keywords")
-async def extract_keywords(text: str):
-    """关键词提取接口"""
-```
+### 环境要求
 
-### 4. 数据流设计
+- Python 3.12+
+- Node.js 18+
+- PostgreSQL 14+
 
-1. 文本输入 → 预处理
-2. 特征提取 → 向量化
-3. 存储处理 → 向量库/图库
-4. 语义分析 → 大模型处理
-5. 结果返回 → API响应
+### 安装步骤
 
-### 5. 技术栈选型
+1. 克隆仓库
+   ```bash
+   git clone https://github.com/yourusername/kortex.git
+   cd kortex
+   ```
 
-- Web框架: FastAPI
-- 向量数据库: Milvus
-- 图数据库: Neo4j
-- 文档数据库: MongoDB
-- 大模型框架: LangChain
-- 特征提取: Sentence-Transformers
-- 提升数据质量: cognee
-- 部署: Docker + Kubernetes
+2. 安装后端依赖
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   ```
 
-### 6. 性能优化
+3. 安装前端依赖
+   ```bash
+   cd ../frontend
+   npm install
+   ```
 
-- 异步处理
-- 数据批处理
-- 缓存机制
-- 模型量化
-- 分布式部署
+4. 启动开发服务器
+   ```bash
+   # 后端
+   cd ../backend
+   uvicorn main:app --reload
 
-这个架构设计涵盖了项目的主要功能需求，同时保持了良好的可扩展性和维护性。建议逐步实现各个模块，优先完成核心功能。
+   # 前端
+   cd ../frontend
+   npm run dev
+   ```
+
+## 贡献指南
+
+欢迎贡献代码、报告问题或提出新功能建议。请参阅[贡献指南](docs/CONTRIBUTING.md)了解详情。
+
+## 许可证
+
+本项目采用MIT许可证。详见[LICENSE](LICENSE)文件。

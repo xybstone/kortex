@@ -1,0 +1,28 @@
+[project]
+name = "kortex"
+version = "0.1.0"
+description = "一个在线笔记工具，支持Markdown编辑、数据库管理和大模型集成"
+authors = [
+    {name = "徐阳波", email = "xybstone@users.noreply.github.com"}
+]
+license = {text = "MIT"}
+readme = "../README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.27.0",
+    "sqlalchemy>=2.0.0",
+    "pydantic>=2.0.0",
+    "python-multipart>=0.0.6",
+    "langchain>=0.1.0",
+    "python-jose>=3.3.0",
+    "passlib>=1.7.4",
+    "alembic>=1.12.0",
+    "psycopg2-binary>=2.9.9",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.2",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
