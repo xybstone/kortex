@@ -14,7 +14,7 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -46,7 +46,8 @@ class NoteResponse(NoteBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     databases: Optional[List["DatabaseBrief"]] = None
-    
+    conversations: Optional[List["ConversationResponse"]] = None
+
     class Config:
         from_attributes = True
 
@@ -64,7 +65,7 @@ class DatabaseUpdate(BaseModel):
 
 class DatabaseBrief(DatabaseBase):
     id: int
-    
+
     class Config:
         from_attributes = True
 
@@ -74,7 +75,7 @@ class DatabaseResponse(DatabaseBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     tables: Optional[List["TableBrief"]] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -84,7 +85,7 @@ class TableBase(BaseModel):
 
 class TableBrief(TableBase):
     id: int
-    
+
     class Config:
         from_attributes = True
 
@@ -92,7 +93,7 @@ class TableResponse(TableBase):
     id: int
     database_id: int
     columns: List["ColumnResponse"]
-    
+
     class Config:
         from_attributes = True
 
@@ -103,7 +104,7 @@ class ColumnBase(BaseModel):
 
 class ColumnResponse(ColumnBase):
     id: int
-    
+
     class Config:
         from_attributes = True
 
@@ -116,7 +117,121 @@ class LLMResponse(BaseModel):
     result: Any
     type: str
 
+# LLM供应商相关模式
+class LLMProviderBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    base_url: Optional[str] = None
+
+class LLMProviderCreate(LLMProviderBase):
+    pass
+
+class LLMProviderUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    base_url: Optional[str] = None
+
+class LLMProviderResponse(LLMProviderBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# LLM模型相关模式
+class LLMModelBase(BaseModel):
+    name: str
+    provider_id: int
+    api_key: Optional[str] = None
+    is_active: bool = True
+    max_tokens: int = 4096
+    temperature: float = 0.7
+
+class LLMModelCreate(LLMModelBase):
+    pass
+
+class LLMModelUpdate(BaseModel):
+    name: Optional[str] = None
+    provider_id: Optional[int] = None
+    api_key: Optional[str] = None
+    is_active: Optional[bool] = None
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+
+class LLMModelResponse(LLMModelBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    provider: LLMProviderResponse
+
+    class Config:
+        from_attributes = True
+
+# LLM角色相关模式
+class LLMRoleBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    system_prompt: str
+    model_id: int
+    is_default: bool = False
+
+class LLMRoleCreate(LLMRoleBase):
+    pass
+
+class LLMRoleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    system_prompt: Optional[str] = None
+    model_id: Optional[int] = None
+    is_default: Optional[bool] = None
+
+class LLMRoleResponse(LLMRoleBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    model: LLMModelResponse
+
+    class Config:
+        from_attributes = True
+
+# 对话消息相关模式
+class MessageBase(BaseModel):
+    content: str
+    role: str  # user, assistant, system
+
+class MessageCreate(MessageBase):
+    conversation_id: int
+
+class MessageResponse(MessageBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# 对话相关模式
+class ConversationBase(BaseModel):
+    note_id: int
+    role_id: int
+
+class ConversationCreate(ConversationBase):
+    pass
+
+class ConversationResponse(ConversationBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    messages: List[MessageResponse] = []
+    role: LLMRoleResponse
+
+    class Config:
+        from_attributes = True
+
 # 更新引用
-NoteResponse.update_forward_refs()
-DatabaseResponse.update_forward_refs()
-TableResponse.update_forward_refs()
+NoteResponse.model_rebuild()
+DatabaseResponse.model_rebuild()
+TableResponse.model_rebuild()
+ConversationResponse.model_rebuild()
+LLMModelResponse.model_rebuild()
+LLMRoleResponse.model_rebuild()

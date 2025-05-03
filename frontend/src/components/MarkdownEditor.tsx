@@ -14,9 +14,10 @@ import remarkGfm from 'remark-gfm';
 interface MarkdownEditorProps {
   initialValue?: string;
   onChange?: (value: string) => void;
+  ref?: React.RefObject<any>;
 }
 
-export default function MarkdownEditor({ initialValue = '', onChange }: MarkdownEditorProps) {
+export default function MarkdownEditor({ initialValue = '', onChange, ref }: MarkdownEditorProps) {
   const [markdownText, setMarkdownText] = useState(initialValue);
 
   useEffect(() => {
