@@ -13,6 +13,9 @@
 - **数据库管理**：支持创建、导入和管理数据库
 - **笔记与数据库关联**：在笔记中引用和可视化数据
 - **大模型集成**：利用AI分析数据并生成笔记内容
+  - 支持多种大模型供应商配置
+  - 可自定义AI角色和系统提示词
+  - 笔记页面集成AI助手对话功能
 
 ## 项目架构
 
@@ -33,6 +36,10 @@
   - 核心层：实现业务逻辑
   - 服务层：集成第三方服务
   - 数据层：管理数据存储和访问
+- **安全特性**：
+  - API密钥加密存储
+  - JWT认证
+  - CORS保护
 
 ### 数据库
 
@@ -46,14 +53,16 @@
 ### 一期
 
 - [x] 项目的架构设计
+- [x] 大模型API接入功能开发，支持在页面上设置常见的大模型(GPT-3.5-turbo, Claude-3,DeepSeek等)
+- [x] 开发用户认证与授权系统，支持用户登录、注册每个用户可以创建笔记、数据库、大模型、大模型角色等
+- [x] 大模型角色配置功能，支持创建和管理不同的AI角色
+- [x] 笔记页面集成AI助手功能，支持与大模型对话
 - [ ] 在线笔记本的功能开发
 - [ ] 数据的功能开发，支持导入数据(Excel, CSV, JSON)
-- [ ] 大模型API接入功能开发
 - [ ] 笔记与数据库的关联功能开发（可以在笔记中引用数据）
 
 ### 二期
 
-- [ ] 用户认证与授权系统
 - [ ] 笔记版本控制
 - [ ] 协作编辑功能
 - [ ] 高级数据可视化
@@ -70,31 +79,64 @@
 ### 安装步骤
 
 1. 克隆仓库
+
    ```bash
    git clone https://github.com/yourusername/kortex.git
    cd kortex
    ```
 
-2. 安装后端依赖
+2. 创建并激活Python虚拟环境
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/macOS
+   # 或
+   .\venv\Scripts\activate  # Windows
+   ```
+
+   也可以使用提供的激活脚本：
+
+   ```bash
+   ./activate.sh  # Linux/macOS
+   ```
+
+3. 安装后端依赖
+
    ```bash
    cd backend
    pip install -r requirements.txt
+   cd ..
    ```
 
-3. 安装前端依赖
+4. 安装前端依赖
+
    ```bash
-   cd ../frontend
+   cd frontend
    npm install
+   cd ..
    ```
 
-4. 启动开发服务器
+5. 启动开发服务器
+
+   使用提供的启动脚本：
+
+   ```bash
+   # 启动后端
+   ./start_backend.sh
+
+   # 启动前端（在另一个终端）
+   ./start_frontend.sh
+   ```
+
+   或手动启动：
+
    ```bash
    # 后端
-   cd ../backend
+   cd backend
    uvicorn main:app --reload
 
-   # 前端
-   cd ../frontend
+   # 前端（在另一个终端）
+   cd frontend
    npm run dev
    ```
 
