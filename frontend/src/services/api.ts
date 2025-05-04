@@ -11,8 +11,8 @@ const api = axios.create({
 // 添加请求拦截器，自动添加认证头
 api.interceptors.request.use(
   (config) => {
-    // 模拟认证令牌
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzE4MzgwODAwfQ.8H7MnKTCZl4L6ICv8cj8O9K9l1fU1TEyQ7QgQxpLNSo';
+    // 从localStorage获取令牌
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

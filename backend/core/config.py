@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7天
 
     # 数据库配置
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost/kortex"
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/kortex"
 
     # CORS配置
     BACKEND_CORS_ORIGINS: str = "http://localhost:3000"

@@ -3,7 +3,15 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from sqlalchemy.orm import Session
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+# 导入数据库相关模块
+from database.session import SessionLocal, engine
+from models.simple_models import User as DBUser, Note as DBNote, Database as DBDatabase
+from core.config import settings
 
 app = FastAPI()
 
@@ -16,17 +24,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 模拟用户数据
-fake_users_db = {
-    "user@example.com": {
-        "id": 1,
-        "email": "user@example.com",
-        "full_name": "测试用户",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # "password"
-        "is_active": True,
-        "is_admin": False
-    }
-}
+# 密码哈希工具
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# 数据库依赖项
+def get_db():
+    """获取数据库会话"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# 密码验证和哈希函数
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """验证密码"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    """生成密码哈希"""
+    return pwd_context.hash(password)
 
 # 模型定义
 class Token(BaseModel):
@@ -80,106 +97,138 @@ class DatabaseResponse(DatabaseBase):
     class Config:
         from_attributes = True
 
+# JWT令牌相关函数
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """创建访问令牌"""
+    to_encode = data.copy()
+
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
+
 # 认证相关
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
+# 获取当前用户依赖项
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """获取当前用户"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="无法验证凭据",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(DBUser).filter(DBUser.email == email).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
 @app.post("/api/auth/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    # 简单模拟登录，不验证密码
-    user = fake_users_db.get(form_data.username)
-    if not user:
-        # 如果用户不存在，自动创建一个
-        user_id = len(fake_users_db) + 1
-        fake_users_db[form_data.username] = {
-            "id": user_id,
-            "email": form_data.username,
-            "full_name": None,
-            "hashed_password": "fake_hashed_password",
-            "is_active": True,
-            "is_admin": False
-        }
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """用户登录"""
+    # 查询用户
+    user = db.query(DBUser).filter(DBUser.email == form_data.username).first()
+
+    # 验证用户和密码
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        # 如果用户不存在或密码不正确，返回错误
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="邮箱或密码不正确",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 创建访问令牌
+    access_token = create_access_token(data={"sub": user.email})
 
     return {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzE4MzgwODAwfQ.8H7MnKTCZl4L6ICv8cj8O9K9l1fU1TEyQ7QgQxpLNSo",
+        "access_token": access_token,
         "token_type": "bearer"
     }
 
 @app.post("/api/auth/register")
-async def register(user: UserCreate):
-    # 简单模拟注册，不验证邮箱是否已存在
-    user_id = len(fake_users_db) + 1
-    fake_users_db[user.email] = {
-        "id": user_id,
-        "email": user.email,
-        "full_name": user.full_name,
-        "hashed_password": "fake_hashed_password",
-        "is_active": True,
-        "is_admin": False
-    }
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+    """用户注册"""
+    # 检查邮箱是否已被注册
+    db_user = db.query(DBUser).filter(DBUser.email == user.email).first()
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该邮箱已被注册"
+        )
+
+    # 创建新用户
+    hashed_password = get_password_hash(user.password)
+    db_user = DBUser(
+        email=user.email,
+        hashed_password=hashed_password,
+        full_name=user.full_name,
+        is_active=True,
+        is_admin=False
+    )
+
+    # 保存到数据库
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
     return {"message": "注册成功"}
 
 @app.get("/api/auth/me", response_model=User)
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    # 简单模拟返回用户信息，不验证token
-    # 在实际应用中，应该从token中解析用户信息
-    print(f"接收到的token: {token}")
+async def get_current_user_info(current_user: DBUser = Depends(get_current_user)):
+    """获取当前用户信息"""
     return {
-        "id": 1,
-        "email": "user@example.com",
-        "full_name": "测试用户",
-        "is_active": True,
-        "is_admin": False
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "is_active": current_user.is_active,
+        "is_admin": current_user.is_admin
     }
 
-# 模拟笔记数据
-fake_notes_db = {
-    1: {
-        "id": 1,
-        "title": "项目计划",
-        "content": "# 项目计划\n\n这是一个项目计划文档...",
-        "user_id": 1,
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    2: {
-        "id": 2,
-        "title": "会议记录",
-        "content": "# 会议记录\n\n今天的会议讨论了以下内容...",
-        "user_id": 1,
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    3: {
-        "id": 3,
-        "title": "学习笔记",
-        "content": "# 学习笔记\n\n今天学习了以下内容...",
-        "user_id": 1,
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    }
-}
+# 初始化数据库表
+# 注意：在生产环境中，应该使用Alembic进行数据库迁移
+# 这里为了简单起见，直接创建表
+from models.simple_models import Base
+Base.metadata.create_all(bind=engine)
 
-# 模拟数据库数据
-fake_databases_db = {
-    1: {
-        "id": 1,
-        "name": "项目数据",
-        "description": "项目相关数据",
-        "user_id": 1
-    },
-    2: {
-        "id": 2,
-        "name": "客户信息",
-        "description": "客户联系信息",
-        "user_id": 1
-    },
-    3: {
-        "id": 3,
-        "name": "产品目录",
-        "description": "产品信息和价格",
-        "user_id": 1
-    }
-}
+# 创建初始用户
+def init_db():
+    db = SessionLocal()
+    try:
+        # 检查是否已存在用户
+        user = db.query(DBUser).filter(DBUser.email == "user@example.com").first()
+        if not user:
+            # 创建默认用户
+            hashed_password = get_password_hash("password")
+            default_user = DBUser(
+                email="user@example.com",
+                full_name="测试用户",
+                hashed_password=hashed_password,
+                is_active=True,
+                is_admin=False
+            )
+            db.add(default_user)
+            db.commit()
+            print("已创建默认用户: user@example.com")
+    except Exception as e:
+        print(f"初始化数据库时出错: {e}")
+    finally:
+        db.close()
+
+# 初始化数据库
+init_db()
 
 @app.get("/")
 async def root():
@@ -191,96 +240,147 @@ async def get_notes(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
-    token: str = Depends(oauth2_scheme)
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """获取笔记列表"""
-    notes = list(fake_notes_db.values())
+    # 构建查询
+    query = db.query(DBNote).filter(DBNote.user_id == current_user.id)
 
     # 如果提供了搜索关键词，在标题和内容中搜索
     if search:
-        search = search.lower()
-        notes = [
-            note for note in notes
-            if search in note["title"].lower() or search in note["content"].lower()
-        ]
+        search = f"%{search}%"
+        query = query.filter(
+            (DBNote.title.ilike(search)) | (DBNote.content.ilike(search))
+        )
 
     # 分页
-    start = skip
-    end = skip + limit
+    notes = query.order_by(DBNote.created_at.desc()).offset(skip).limit(limit).all()
 
-    return notes[start:end]
+    # 转换为响应模型
+    return [
+        {
+            "id": note.id,
+            "title": note.title,
+            "content": note.content,
+            "user_id": note.user_id,
+            "created_at": note.created_at,
+            "updated_at": note.updated_at
+        }
+        for note in notes
+    ]
 
 @app.get("/api/notes/{note_id}", response_model=NoteResponse)
 async def get_note(
     note_id: int,
-    token: str = Depends(oauth2_scheme)
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """获取单个笔记详情"""
-    if note_id not in fake_notes_db:
+    # 查询笔记
+    note = db.query(DBNote).filter(
+        DBNote.id == note_id,
+        DBNote.user_id == current_user.id
+    ).first()
+
+    # 检查笔记是否存在
+    if not note:
         raise HTTPException(status_code=404, detail="笔记不存在")
 
-    return fake_notes_db[note_id]
+    return {
+        "id": note.id,
+        "title": note.title,
+        "content": note.content,
+        "user_id": note.user_id,
+        "created_at": note.created_at,
+        "updated_at": note.updated_at
+    }
 
 @app.post("/api/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
 async def create_note(
     note: NoteCreate,
-    token: str = Depends(oauth2_scheme)
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """创建新笔记"""
-    # 生成新的笔记ID
-    new_id = max(fake_notes_db.keys()) + 1 if fake_notes_db else 1
-
     # 创建新笔记
-    now = datetime.now()
-    new_note = {
-        "id": new_id,
-        "title": note.title,
-        "content": note.content,
-        "user_id": 1,  # 固定用户ID为1
-        "created_at": now,
-        "updated_at": now
+    db_note = DBNote(
+        title=note.title,
+        content=note.content,
+        user_id=current_user.id
+    )
+
+    # 保存到数据库
+    db.add(db_note)
+    db.commit()
+    db.refresh(db_note)
+
+    return {
+        "id": db_note.id,
+        "title": db_note.title,
+        "content": db_note.content,
+        "user_id": db_note.user_id,
+        "created_at": db_note.created_at,
+        "updated_at": db_note.updated_at
     }
-
-    # 保存到模拟数据库
-    fake_notes_db[new_id] = new_note
-
-    return new_note
 
 @app.put("/api/notes/{note_id}", response_model=NoteResponse)
 async def update_note(
     note_id: int,
     note: NoteUpdate,
-    token: str = Depends(oauth2_scheme)
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """更新笔记"""
-    if note_id not in fake_notes_db:
-        raise HTTPException(status_code=404, detail="笔记不存在")
+    # 查询笔记
+    db_note = db.query(DBNote).filter(
+        DBNote.id == note_id,
+        DBNote.user_id == current_user.id
+    ).first()
 
-    # 获取现有笔记
-    existing_note = fake_notes_db[note_id]
+    # 检查笔记是否存在
+    if not db_note:
+        raise HTTPException(status_code=404, detail="笔记不存在")
 
     # 更新笔记
     if note.title is not None:
-        existing_note["title"] = note.title
+        db_note.title = note.title
     if note.content is not None:
-        existing_note["content"] = note.content
+        db_note.content = note.content
 
-    # 更新时间
-    existing_note["updated_at"] = datetime.now()
+    # 保存更新
+    db.commit()
+    db.refresh(db_note)
 
-    return existing_note
+    return {
+        "id": db_note.id,
+        "title": db_note.title,
+        "content": db_note.content,
+        "user_id": db_note.user_id,
+        "created_at": db_note.created_at,
+        "updated_at": db_note.updated_at
+    }
 
 @app.delete("/api/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_note(
     note_id: int,
-    token: str = Depends(oauth2_scheme)
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """删除笔记"""
-    if note_id not in fake_notes_db:
+    # 查询笔记
+    db_note = db.query(DBNote).filter(
+        DBNote.id == note_id,
+        DBNote.user_id == current_user.id
+    ).first()
+
+    # 检查笔记是否存在
+    if not db_note:
         raise HTTPException(status_code=404, detail="笔记不存在")
 
     # 删除笔记
-    del fake_notes_db[note_id]
+    db.delete(db_note)
+    db.commit()
 
     return None
 
@@ -290,21 +390,31 @@ async def get_databases(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = None,
-    token: str = Depends(oauth2_scheme)
+    current_user: DBUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """获取数据库列表"""
-    databases = list(fake_databases_db.values())
+    # 构建查询
+    query = db.query(DBDatabase).filter(DBDatabase.user_id == current_user.id)
 
     # 如果提供了搜索关键词，在名称和描述中搜索
     if search:
-        search = search.lower()
-        databases = [
-            db for db in databases
-            if search in db["name"].lower() or (db["description"] and search in db["description"].lower())
-        ]
+        search = f"%{search}%"
+        query = query.filter(
+            (DBDatabase.name.ilike(search)) |
+            (DBDatabase.description.ilike(search))
+        )
 
     # 分页
-    start = skip
-    end = skip + limit
+    databases = query.order_by(DBDatabase.name).offset(skip).limit(limit).all()
 
-    return databases[start:end]
+    # 转换为响应模型
+    return [
+        {
+            "id": database.id,
+            "name": database.name,
+            "description": database.description,
+            "user_id": database.user_id
+        }
+        for database in databases
+    ]
