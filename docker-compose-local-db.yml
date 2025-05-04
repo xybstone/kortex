@@ -1,0 +1,59 @@
+version: '3.8'
+
+# 全局配置
+x-common-variables: &common-variables
+  PYTHONUNBUFFERED: 1
+
+services:
+  # 后端API服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kortex-backend
+    restart: unless-stopped
+    environment:
+      <<: *common-variables
+      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:5432/kortex
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      BACKEND_CORS_ORIGINS: http://localhost:3000,http://frontend:3000
+    volumes:
+      - ./backend/uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    networks:
+      - kortex-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: kortex-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    networks:
+      - kortex-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  kortex-network:
+    driver: bridge

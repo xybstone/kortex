@@ -58,7 +58,7 @@
 - [x] 大模型角色配置功能，支持创建和管理不同的AI角色
 - [x] 笔记页面集成AI助手功能，支持与大模型对话
 - [x] 在线笔记的功能开发
-- [x] 用户个人信息页面开发,包括个人资料、设置、数据库管理、大模型配置等
+- [ ] 用本地服务器存储数据，比如：用户信息,用户配置,数据库,大模型配置等
 - [ ] 数据的功能开发，支持导入数据(Excel, CSV, JSON)
 - [ ] 笔记与数据库的关联功能开发（可以在笔记中引用数据）
 
@@ -77,7 +77,37 @@
 - Node.js 18+
 - PostgreSQL 14+
 
-### 安装步骤
+### 方法一：使用Docker部署（推荐）
+
+如果您已安装Docker和Docker Compose，可以使用以下命令快速部署：
+
+1. 克隆仓库
+
+   ```bash
+   git clone https://github.com/yourusername/kortex.git
+   cd kortex
+   ```
+
+2. 使用启动脚本启动应用
+
+   ```bash
+   ./docker-start.sh
+   ```
+
+   这将自动构建并启动所有必要的服务，包括PostgreSQL数据库、后端API和前端应用。
+
+3. 访问应用
+
+   - 前端界面：[http://localhost:3000](http://localhost:3000)
+   - API文档：[http://localhost:8000/docs](http://localhost:8000/docs)
+
+4. 停止应用
+
+   ```bash
+   ./docker-stop.sh
+   ```
+
+### 方法二：手动安装
 
 1. 克隆仓库
 

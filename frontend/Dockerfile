@@ -1,0 +1,42 @@
+FROM kortex-node:18-alpine AS builder
+
+WORKDIR /app
+
+# 复制package.json和package-lock.json
+COPY package*.json ./
+
+# 设置npm使用腾讯云镜像源
+RUN npm config set registry https://mirrors.cloud.tencent.com/npm/
+
+# 安装依赖
+RUN npm install
+
+# 复制源代码
+COPY . .
+
+# 构建应用
+RUN npm run build
+
+# 生产环境
+FROM kortex-node:18-alpine AS runner
+
+WORKDIR /app
+
+# 安装wget用于健康检查
+RUN apk add --no-cache wget curl
+
+# 设置为生产环境
+ENV NODE_ENV=production
+
+# 复制构建产物和必要文件
+COPY --from=builder /app/next.config.js ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# 暴露端口
+EXPOSE 3000
+
+# 启动应用
+CMD ["npm", "start"]

@@ -2,12 +2,36 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from sqlalchemy import or_
 
-from backend.models.models import LLMProvider, LLMModel, LLMRole
-from backend.models.schemas import (
-    LLMProviderCreate, LLMProviderUpdate,
-    LLMModelCreate, LLMModelUpdate,
-    LLMRoleCreate, LLMRoleUpdate
-)
+import os
+
+# 检测环境
+IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
+
+if IS_DOCKER:
+    # Docker环境下使用相对导入
+    from models.models import LLMProvider, LLMModel, LLMRole
+    from models.schemas import (
+        LLMProviderCreate, LLMProviderUpdate,
+        LLMModelCreate, LLMModelUpdate,
+        LLMRoleCreate, LLMRoleUpdate
+    )
+else:
+    try:
+        # 尝试使用相对导入
+        from models.models import LLMProvider, LLMModel, LLMRole
+        from models.schemas import (
+            LLMProviderCreate, LLMProviderUpdate,
+            LLMModelCreate, LLMModelUpdate,
+            LLMRoleCreate, LLMRoleUpdate
+        )
+    except ImportError:
+        # 尝试使用绝对导入（本地开发环境）
+        from backend.models.models import LLMProvider, LLMModel, LLMRole
+        from backend.models.schemas import (
+            LLMProviderCreate, LLMProviderUpdate,
+            LLMModelCreate, LLMModelUpdate,
+            LLMRoleCreate, LLMRoleUpdate
+        )
 
 # LLM供应商服务
 def create_provider(db: Session, provider: LLMProviderCreate) -> LLMProvider:

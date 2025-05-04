@@ -1,13 +1,43 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import sys
+import os
+import importlib.util
+
+# 添加当前目录到Python路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+sys.path.append(os.path.dirname(current_dir))  # 添加父目录
+
+# 检测环境
+IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
 
 # 导入路由模块
-from api.routes import auth_simple
-from api.routes import llm_config
-from api.routes import conversations
-from api.routes import notes
-from api.routes import databases
-from api.routes import llm
+if IS_DOCKER:
+    # Docker环境下使用相对导入
+    from api.routes import auth_simple
+    from api.routes import llm_config
+    from api.routes import conversations
+    from api.routes import notes
+    from api.routes import databases
+    from api.routes import llm
+else:
+    try:
+        # 尝试使用相对导入
+        from api.routes import auth_simple
+        from api.routes import llm_config
+        from api.routes import conversations
+        from api.routes import notes
+        from api.routes import databases
+        from api.routes import llm
+    except ImportError:
+        # 尝试使用绝对导入
+        from backend.api.routes import auth_simple
+        from backend.api.routes import llm_config
+        from backend.api.routes import conversations
+        from backend.api.routes import notes
+        from backend.api.routes import databases
+        from backend.api.routes import llm
 
 app = FastAPI(
     title="Kortex API",
@@ -18,7 +48,7 @@ app = FastAPI(
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # 前端开发服务器地址
+    allow_origins=["http://localhost:3000", "http://frontend:3000"],  # 支持本地和Docker环境
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,6 +65,11 @@ app.include_router(llm.router, prefix="/api/llm", tags=["大模型"])
 @app.get("/")
 async def root():
     return {"message": "欢迎使用Kortex API"}
+
+@app.get("/api/health")
+async def health_check():
+    """健康检查端点，用于Docker容器监控"""
+    return {"status": "healthy"}
 
 
 

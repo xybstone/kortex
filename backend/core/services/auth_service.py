@@ -5,9 +5,9 @@ from jose import jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 
-from backend.core.config import settings
-from backend.models.models import User
-from backend.models.schemas import UserCreate
+from core.config import settings
+from models.models import User
+from models.schemas import UserCreate
 
 # 密码哈希工具
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

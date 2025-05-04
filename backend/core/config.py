@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, List
 import secrets
 from pathlib import Path
 from cryptography.fernet import Fernet
+import os
 
 class Settings(BaseSettings):
     # 基本配置
@@ -15,7 +16,16 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost/kortex"
 
     # CORS配置
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: str = "http://localhost:3000"
+
+    @property
+    def BACKEND_CORS_ORIGINS_LIST(self) -> List[str]:
+        """获取CORS源列表"""
+        cors_origins = os.environ.get("BACKEND_CORS_ORIGINS", "")
+        if cors_origins:
+            # 按逗号分隔的字符串处理
+            return [origin.strip() for origin in cors_origins.split(",")]
+        return self.BACKEND_CORS_ORIGINS
 
     # 文件存储配置
     UPLOAD_DIR: Path = Path("./uploads")

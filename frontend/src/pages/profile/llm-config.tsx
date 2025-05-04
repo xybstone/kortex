@@ -321,6 +321,205 @@ export default function LLMConfig() {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // 模型相关处理函数
+  const handleAddModel = () => {
+    setEditingModel(null);
+    setModelForm({
+      name: '',
+      provider_id: providers.length > 0 ? providers[0].id : 0,
+      api_key: '',
+      is_active: true,
+      is_public: false,
+      max_tokens: 4096,
+      temperature: 0.7
+    });
+    setModelDialogOpen(true);
+  };
+
+  const handleEditModel = (model: LLMModel) => {
+    setEditingModel(model);
+    setModelForm({
+      name: model.name,
+      provider_id: model.provider_id,
+      api_key: model.api_key || '',
+      is_active: model.is_active,
+      is_public: model.is_public,
+      max_tokens: model.max_tokens,
+      temperature: model.temperature
+    });
+    setModelDialogOpen(true);
+  };
+
+  const handleDeleteModel = (model: LLMModel) => {
+    setDeleteItem({ type: 'model', id: model.id });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleModelSubmit = async () => {
+    try {
+      if (editingModel) {
+        // 更新模型
+        await axios.put(`http://localhost:8000/api/llm-config/models/${editingModel.id}`, modelForm);
+
+        // 更新本地状态
+        setModels(models.map(m =>
+          m.id === editingModel.id ? { ...m, ...modelForm } : m
+        ));
+
+        setSnackbar({
+          open: true,
+          message: '模型更新成功',
+          severity: 'success'
+        });
+      } else {
+        // 创建新模型
+        const response = await axios.post('http://localhost:8000/api/llm-config/models', modelForm);
+
+        // 更新本地状态
+        setModels([...models, response.data]);
+
+        setSnackbar({
+          open: true,
+          message: '模型创建成功',
+          severity: 'success'
+        });
+      }
+
+      setModelDialogOpen(false);
+    } catch (err: any) {
+      console.error('保存模型失败:', err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.detail || '操作失败，请稍后再试',
+        severity: 'error'
+      });
+    }
+  };
+
+  // 角色相关处理函数
+  const handleAddRole = () => {
+    setEditingRole(null);
+    setRoleForm({
+      name: '',
+      description: '',
+      system_prompt: '',
+      model_id: models.length > 0 ? models[0].id : 0,
+      is_default: false,
+      is_public: false
+    });
+    setRoleDialogOpen(true);
+  };
+
+  const handleEditRole = (role: LLMRole) => {
+    setEditingRole(role);
+    setRoleForm({
+      name: role.name,
+      description: role.description || '',
+      system_prompt: role.system_prompt,
+      model_id: role.model_id,
+      is_default: role.is_default,
+      is_public: role.is_public
+    });
+    setRoleDialogOpen(true);
+  };
+
+  const handleDeleteRole = (role: LLMRole) => {
+    setDeleteItem({ type: 'role', id: role.id });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleRoleSubmit = async () => {
+    try {
+      if (editingRole) {
+        // 更新角色
+        await axios.put(`http://localhost:8000/api/llm-config/roles/${editingRole.id}`, roleForm);
+
+        // 更新本地状态
+        setRoles(roles.map(r =>
+          r.id === editingRole.id ? { ...r, ...roleForm } : r
+        ));
+
+        setSnackbar({
+          open: true,
+          message: '角色更新成功',
+          severity: 'success'
+        });
+      } else {
+        // 创建新角色
+        const response = await axios.post('http://localhost:8000/api/llm-config/roles', roleForm);
+
+        // 更新本地状态
+        setRoles([...roles, response.data]);
+
+        setSnackbar({
+          open: true,
+          message: '角色创建成功',
+          severity: 'success'
+        });
+      }
+
+      setRoleDialogOpen(false);
+    } catch (err: any) {
+      console.error('保存角色失败:', err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.detail || '操作失败，请稍后再试',
+        severity: 'error'
+      });
+    }
+  };
+
+  // 切换API密钥可见性
+  const toggleApiKeyVisibility = (modelId: number) => {
+    setShowApiKey(prev => ({
+      ...prev,
+      [modelId]: !prev[modelId]
+    }));
+  };
+
+  // 确认删除
+  const handleConfirmDelete = async () => {
+    if (!deleteItem) return;
+
+    try {
+      if (deleteItem.type === 'provider') {
+        await axios.delete(`http://localhost:8000/api/llm-config/providers/${deleteItem.id}`);
+        setProviders(providers.filter(p => p.id !== deleteItem.id));
+        setSnackbar({
+          open: true,
+          message: '供应商删除成功',
+          severity: 'success'
+        });
+      } else if (deleteItem.type === 'model') {
+        await axios.delete(`http://localhost:8000/api/llm-config/models/${deleteItem.id}`);
+        setModels(models.filter(m => m.id !== deleteItem.id));
+        setSnackbar({
+          open: true,
+          message: '模型删除成功',
+          severity: 'success'
+        });
+      } else if (deleteItem.type === 'role') {
+        await axios.delete(`http://localhost:8000/api/llm-config/roles/${deleteItem.id}`);
+        setRoles(roles.filter(r => r.id !== deleteItem.id));
+        setSnackbar({
+          open: true,
+          message: '角色删除成功',
+          severity: 'success'
+        });
+      }
+    } catch (err: any) {
+      console.error('删除失败:', err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.detail || '删除失败，请稍后再试',
+        severity: 'error'
+      });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setDeleteItem(null);
+    }
+  };
+
   return (
     <>
       <Head>

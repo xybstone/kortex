@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Bool
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from backend.database.session import Base
+from database.session import Base
 
 class User(Base):
     """用户模型"""

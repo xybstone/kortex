@@ -1,19 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
-  Paper, 
-  List, 
-  ListItem, 
-  ListItemText, 
-  Avatar, 
-  IconButton, 
-  Divider, 
-  FormControl, 
-  InputLabel, 
-  Select, 
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  Avatar,
+  IconButton,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
   MenuItem,
   CircularProgress
 } from '@mui/material';
@@ -24,33 +24,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-// 模拟角色数据
-const mockRoles = [
-  { id: 1, name: '通用助手', model_id: 1 },
-  { id: 2, name: '程序员', model_id: 1 },
-  { id: 3, name: '写作助手', model_id: 2 },
-  { id: 4, name: '学术助手', model_id: 3 },
+// 默认角色数据
+const defaultRoles = [
+  { id: 1, name: 'AI助手', model_id: 1 }
 ];
-
-// 模拟对话数据
-const mockConversations = [
-  { id: 1, note_id: 1, role_id: 1 },
-  { id: 2, note_id: 1, role_id: 3 },
-];
-
-// 模拟消息数据
-const mockMessages = {
-  1: [
-    { id: 1, conversation_id: 1, content: "你好，我是通用助手，有什么可以帮助你的？", role: "assistant", created_at: "2023-05-10T10:00:00Z" },
-    { id: 2, conversation_id: 1, content: "我想了解一下人工智能的基础知识", role: "user", created_at: "2023-05-10T10:01:00Z" },
-    { id: 3, conversation_id: 1, content: "人工智能(AI)是计算机科学的一个分支，致力于创建能够模拟人类智能的系统。这些系统能够学习、推理、感知、规划和解决问题。\n\n主要的AI领域包括：\n\n1. **机器学习** - 使计算机能够从数据中学习，而无需明确编程\n2. **深度学习** - 使用神经网络进行复杂模式识别\n3. **自然语言处理** - 使计算机能够理解和生成人类语言\n4. **计算机视觉** - 使计算机能够解释和理解视觉信息\n\n人工智能已经在许多领域找到了应用，包括医疗保健、金融、制造业和客户服务等。", role: "assistant", created_at: "2023-05-10T10:02:00Z" },
-  ],
-  2: [
-    { id: 4, conversation_id: 2, content: "你好，我是写作助手，有什么可以帮助你的？", role: "assistant", created_at: "2023-05-11T14:00:00Z" },
-    { id: 5, conversation_id: 2, content: "我需要写一篇关于环保的文章，有什么建议？", role: "user", created_at: "2023-05-11T14:01:00Z" },
-    { id: 6, conversation_id: 2, content: "为了写一篇关于环保的文章，我建议以下结构和内容：\n\n## 标题\n**\"保护地球，从我做起：日常生活中的环保实践\"**\n\n## 引言\n- 简述当前环境面临的挑战\n- 强调个人行动的重要性\n- 提出文章的主要目的：分享实用的环保方法\n\n## 主体部分\n\n### 1. 减少塑料使用\n- 使用可重复使用的购物袋\n- 避免一次性塑料制品\n- 选择无塑料包装的产品\n\n### 2. 节约能源\n- 使用节能灯具和电器\n- 合理设置空调温度\n- 不用时关闭电器电源\n\n### 3. 水资源保护\n- 修复漏水的水龙头\n- 收集雨水用于浇花\n- 减少洗澡时间\n\n### 4. 垃圾分类与回收\n- 学习正确的垃圾分类方法\n- 将可回收物品送去回收\n- 尝试堆肥厨余垃圾\n\n### 5. 绿色出行\n- 使用公共交通工具\n- 骑自行车或步行\n- 考虑拼车或电动汽车\n\n## 结论\n- 总结环保行动的集体影响\n- 鼓励读者从小事做起\n- 展望更可持续的未来\n\n希望这个框架对你有所帮助！", role: "assistant", created_at: "2023-05-11T14:02:00Z" },
-  ]
-};
 
 interface ChatPanelProps {
   noteId: number | string;
@@ -58,120 +35,199 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
-  const [selectedRole, setSelectedRole] = useState<number>(0);
+  const [selectedRole, setSelectedRole] = useState<number>(1);
+  const [roles, setRoles] = useState(defaultRoles);
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // 获取笔记的对话列表
   useEffect(() => {
     if (noteId) {
-      // 在实际应用中，这里会调用API获取对话列表
-      const conversations = mockConversations.filter(c => c.note_id === Number(noteId));
-      if (conversations.length > 0) {
-        setSelectedConversation(conversations[0].id);
-        setSelectedRole(conversations[0].role_id);
-      } else {
-        setSelectedConversation(null);
-        setSelectedRole(mockRoles[0].id);
-      }
+      // 调用API获取对话列表
+      const fetchConversations = async () => {
+        try {
+          // 在实际应用中，这里应该使用axios或fetch调用API
+          // 暂时使用空数组代替mock数据
+          const conversations: any[] = [];
+
+          // 示例API调用代码（取消注释使用）:
+          // const response = await fetch(`/api/conversations/note/${noteId}`);
+          // const conversations = await response.json();
+
+          if (conversations.length > 0) {
+            setSelectedConversation(conversations[0].id);
+            setSelectedRole(conversations[0].role_id);
+          } else {
+            setSelectedConversation(null);
+            // 获取角色列表
+            // const rolesResponse = await fetch('/api/llm-config/roles');
+            // const roles = await rolesResponse.json();
+            // 暂时使用第一个角色
+            setSelectedRole(1);
+          }
+        } catch (error) {
+          console.error('获取对话列表失败:', error);
+          setSelectedConversation(null);
+          setSelectedRole(1);
+        }
+      };
+
+      fetchConversations();
     }
   }, [noteId]);
-  
+
   // 获取对话的消息列表
   useEffect(() => {
     if (selectedConversation) {
-      // 在实际应用中，这里会调用API获取消息列表
-      setMessages(mockMessages[selectedConversation] || []);
+      // 调用API获取消息列表
+      const fetchMessages = async () => {
+        try {
+          // 在实际应用中，这里应该使用axios或fetch调用API
+          // 暂时使用空数组代替mock数据
+          setMessages([]);
+
+          // 示例API调用代码（取消注释使用）:
+          // const response = await fetch(`/api/conversations/${selectedConversation}/messages`);
+          // const data = await response.json();
+          // setMessages(data);
+        } catch (error) {
+          console.error('获取消息失败:', error);
+          setMessages([]);
+        }
+      };
+
+      fetchMessages();
     } else {
       setMessages([]);
     }
   }, [selectedConversation]);
-  
+
   // 滚动到最新消息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-  
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
-    
+
+  const handleSendMessage = async () => {
+    if (!message.trim() || !selectedConversation) return;
+
     // 添加用户消息
     const userMessage = {
       id: Date.now(),
-      conversation_id: selectedConversation || 0,
+      conversation_id: selectedConversation,
       content: message,
       role: "user",
       created_at: new Date().toISOString()
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
+    const userMessageContent = message;
     setMessage('');
     setIsLoading(true);
-    
-    // 模拟API调用延迟
-    setTimeout(() => {
-      // 添加AI响应
-      const aiMessage = {
-        id: Date.now() + 1,
-        conversation_id: selectedConversation || 0,
-        content: `这是对"${message}"的回复。在实际应用中，这里会调用大模型API获取响应。`,
-        role: "assistant",
-        created_at: new Date().toISOString()
-      };
-      
-      setMessages(prev => [...prev, aiMessage]);
+
+    try {
+      // 在实际应用中，这里会调用API发送消息
+      // 示例API调用代码:
+      // const response = await fetch(`/api/conversations/${selectedConversation}/messages`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     content: userMessageContent,
+      //     role: 'user'
+      //   }),
+      // });
+      // const data = await response.json();
+
+      // 模拟API调用延迟
+      setTimeout(() => {
+        // 添加AI响应
+        const aiMessage = {
+          id: Date.now() + 1,
+          conversation_id: selectedConversation,
+          content: `这是对"${userMessageContent}"的回复。在实际应用中，这里会调用大模型API获取响应。`,
+          role: "assistant",
+          created_at: new Date().toISOString()
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+        setIsLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('发送消息失败:', error);
       setIsLoading(false);
-    }, 1000);
+    }
   };
-  
-  const handleCreateConversation = () => {
-    // 在实际应用中，这里会调用API创建新对话
-    const newConversationId = Date.now();
-    
-    // 模拟创建新对话
-    mockConversations.push({
-      id: newConversationId,
-      note_id: Number(noteId),
-      role_id: selectedRole
-    });
-    
-    // 初始化对话消息
-    const role = mockRoles.find(r => r.id === selectedRole);
-    mockMessages[newConversationId] = [{
-      id: Date.now(),
-      conversation_id: newConversationId,
-      content: `你好，我是${role?.name}，有什么可以帮助你的？`,
-      role: "assistant",
-      created_at: new Date().toISOString()
-    }];
-    
-    setSelectedConversation(newConversationId);
+
+  const handleCreateConversation = async () => {
+    try {
+      setIsLoading(true);
+      // 在实际应用中，这里会调用API创建新对话
+      // 示例API调用代码:
+      // const response = await fetch('/api/conversations', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     note_id: Number(noteId),
+      //     role_id: selectedRole
+      //   }),
+      // });
+      // const data = await response.json();
+      // setSelectedConversation(data.id);
+
+      // 暂时使用模拟数据
+      const newConversationId = Date.now();
+      setSelectedConversation(newConversationId);
+
+      // 模拟初始消息
+      setTimeout(() => {
+        const initialMessage = {
+          id: Date.now(),
+          conversation_id: newConversationId,
+          content: `你好，我是AI助手，有什么可以帮助你的？`,
+          role: "assistant",
+          created_at: new Date().toISOString()
+        };
+        setMessages([initialMessage]);
+        setIsLoading(false);
+      }, 500);
+    } catch (error) {
+      console.error('创建对话失败:', error);
+      setIsLoading(false);
+    }
   };
-  
-  const handleDeleteConversation = () => {
+
+  const handleDeleteConversation = async () => {
     if (!selectedConversation) return;
-    
-    // 在实际应用中，这里会调用API删除对话
-    const index = mockConversations.findIndex(c => c.id === selectedConversation);
-    if (index !== -1) {
-      mockConversations.splice(index, 1);
-      delete mockMessages[selectedConversation];
-    }
-    
-    // 选择另一个对话或清空选择
-    const conversations = mockConversations.filter(c => c.note_id === Number(noteId));
-    if (conversations.length > 0) {
-      setSelectedConversation(conversations[0].id);
-      setSelectedRole(conversations[0].role_id);
-    } else {
+
+    try {
+      setIsLoading(true);
+      // 在实际应用中，这里会调用API删除对话
+      // 示例API调用代码:
+      // await fetch(`/api/conversations/${selectedConversation}`, {
+      //   method: 'DELETE'
+      // });
+
+      // 删除后重新获取对话列表
+      // const response = await fetch(`/api/conversations/note/${noteId}`);
+      // const conversations = await response.json();
+
+      // 暂时使用模拟逻辑
       setSelectedConversation(null);
-      setSelectedRole(mockRoles[0].id);
+      setSelectedRole(1);
+      setMessages([]);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('删除对话失败:', error);
+      setIsLoading(false);
     }
   };
-  
+
   const handleInsertToNote = (text: string) => {
     if (onInsertText) {
       onInsertText(text);
@@ -184,24 +240,24 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
         <Typography variant="h6" gutterBottom>
           AI助手
         </Typography>
-        
+
         {selectedConversation ? (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography>
-              当前对话: {mockRoles.find(r => r.id === mockConversations.find(c => c.id === selectedConversation)?.role_id)?.name}
+              当前对话: AI助手
             </Typography>
             <Box>
-              <Button 
-                variant="outlined" 
-                size="small" 
+              <Button
+                variant="outlined"
+                size="small"
                 onClick={() => setSelectedConversation(null)}
                 sx={{ mr: 1 }}
               >
                 新对话
               </Button>
-              <IconButton 
-                size="small" 
-                color="error" 
+              <IconButton
+                size="small"
+                color="error"
                 onClick={handleDeleteConversation}
               >
                 <DeleteIcon />
@@ -217,15 +273,15 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
                 label="选择角色"
                 onChange={(e) => setSelectedRole(Number(e.target.value))}
               >
-                {mockRoles.map((role) => (
+                {roles.map((role) => (
                   <MenuItem key={role.id} value={role.id}>
                     {role.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               fullWidth
               onClick={handleCreateConversation}
             >
@@ -234,22 +290,22 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
           </Box>
         )}
       </Box>
-      
+
       {selectedConversation && (
         <>
           <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
             <List>
               {messages.map((msg) => (
-                <ListItem 
-                  key={msg.id} 
+                <ListItem
+                  key={msg.id}
                   alignItems="flex-start"
-                  sx={{ 
+                  sx={{
                     flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-                    mb: 2 
+                    mb: 2
                   }}
                 >
-                  <Avatar 
-                    sx={{ 
+                  <Avatar
+                    sx={{
                       bgcolor: msg.role === 'user' ? 'primary.main' : 'secondary.main',
                       mr: msg.role === 'user' ? 0 : 2,
                       ml: msg.role === 'user' ? 2 : 0
@@ -257,10 +313,10 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
                   >
                     {msg.role === 'user' ? <PersonIcon /> : <SmartToyIcon />}
                   </Avatar>
-                  <Paper 
-                    elevation={1} 
-                    sx={{ 
-                      p: 2, 
+                  <Paper
+                    elevation={1}
+                    sx={{
+                      p: 2,
                       maxWidth: '80%',
                       bgcolor: msg.role === 'user' ? 'primary.light' : 'background.paper',
                       color: msg.role === 'user' ? 'primary.contrastText' : 'text.primary'
@@ -272,8 +328,8 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
                           {msg.content}
                         </ReactMarkdown>
                         {msg.content.length > 20 && (
-                          <Button 
-                            size="small" 
+                          <Button
+                            size="small"
                             onClick={() => handleInsertToNote(msg.content)}
                             sx={{ mt: 1 }}
                           >
@@ -295,7 +351,7 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
               <div ref={messagesEndRef} />
             </List>
           </Box>
-          
+
           <Box sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
             <Box sx={{ display: 'flex' }}>
               <TextField
