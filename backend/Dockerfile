@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 安装Python依赖
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir email-validator
+RUN pip install --no-cache-dir email-validator langchain-deepseek
 
 # 复制应用代码
 COPY . .

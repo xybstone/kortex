@@ -7,6 +7,7 @@ from database.session import Base
 class User(Base):
     """用户模型"""
     __tablename__ = "users"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
@@ -27,6 +28,7 @@ class User(Base):
 class Note(Base):
     """笔记模型"""
     __tablename__ = "notes"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
@@ -43,6 +45,7 @@ class Note(Base):
 class Database(Base):
     """数据库模型"""
     __tablename__ = "databases"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -59,6 +62,7 @@ class Database(Base):
 class NoteDatabase(Base):
     """笔记与数据库关联模型"""
     __tablename__ = "note_databases"
+    __table_args__ = {'extend_existing': True}
 
     note_id = Column(Integer, ForeignKey("notes.id"), primary_key=True)
     database_id = Column(Integer, ForeignKey("databases.id"), primary_key=True)
@@ -67,6 +71,7 @@ class NoteDatabase(Base):
 class Table(Base):
     """表格模型"""
     __tablename__ = "tables"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -76,12 +81,13 @@ class Table(Base):
 
     # 关系
     database = relationship("Database", back_populates="tables")
-    columns = relationship("Column", back_populates="table", cascade="all, delete-orphan")
+    columns = relationship("TableColumn", back_populates="table", cascade="all, delete-orphan")
     rows = relationship("Row", back_populates="table", cascade="all, delete-orphan")
 
-class Column(Base):
+class TableColumn(Base):
     """列模型"""
     __tablename__ = "columns"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -95,6 +101,7 @@ class Column(Base):
 class Row(Base):
     """行模型"""
     __tablename__ = "rows"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     table_id = Column(Integer, ForeignKey("tables.id"))
@@ -106,6 +113,7 @@ class Row(Base):
 class Cell(Base):
     """单元格模型"""
     __tablename__ = "cells"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     row_id = Column(Integer, ForeignKey("rows.id"))
@@ -114,12 +122,13 @@ class Cell(Base):
 
     # 关系
     row = relationship("Row", back_populates="cells")
-    column = relationship("Column", back_populates="cells")
+    column = relationship("TableColumn", back_populates="cells")
 
 
 class LLMProvider(Base):
     """大模型供应商模型"""
     __tablename__ = "llm_providers"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)  # 供应商名称，如OpenAI, Anthropic, Gemini等
@@ -138,6 +147,7 @@ class LLMProvider(Base):
 class LLMModel(Base):
     """大模型模型"""
     __tablename__ = "llm_models"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)  # 模型名称，如gpt-4, claude-3等
@@ -160,6 +170,7 @@ class LLMModel(Base):
 class LLMRole(Base):
     """大模型角色模型"""
     __tablename__ = "llm_roles"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)  # 角色名称
@@ -180,6 +191,7 @@ class LLMRole(Base):
 class NoteConversation(Base):
     """笔记与大模型对话模型"""
     __tablename__ = "note_conversations"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     note_id = Column(Integer, ForeignKey("notes.id"))
@@ -198,6 +210,7 @@ class NoteConversation(Base):
 class ConversationMessage(Base):
     """对话消息模型"""
     __tablename__ = "conversation_messages"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     conversation_id = Column(Integer, ForeignKey("note_conversations.id"))

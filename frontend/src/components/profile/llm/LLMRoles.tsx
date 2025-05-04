@@ -114,7 +114,8 @@ export default function LLMRoles({ onSuccess, onError }: LLMRolesProps) {
       const mockProviders = [
         {id: 1, name: "OpenAI", description: "OpenAI API", base_url: "https://api.openai.com/v1", is_public: true},
         {id: 2, name: "Anthropic", description: "Anthropic Claude API", base_url: "https://api.anthropic.com", is_public: true},
-        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true}
+        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true},
+        {id: 4, name: "DeepSeek", description: "DeepSeek AI API", base_url: "https://api.deepseek.com", is_public: true}
       ];
       setProviders(mockProviders);
     } catch (err: any) {
@@ -140,7 +141,9 @@ export default function LLMRoles({ onSuccess, onError }: LLMRolesProps) {
       const mockModels = [
         {id: 1, name: "gpt-4", provider_id: 1, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 8192, temperature: 0.7},
         {id: 2, name: "gpt-3.5-turbo", provider_id: 1, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7},
-        {id: 3, name: "claude-3-opus", provider_id: 2, api_key: "sk_ant-***********", is_active: true, is_public: true, max_tokens: 100000, temperature: 0.7}
+        {id: 3, name: "claude-3-opus", provider_id: 2, api_key: "sk_ant-***********", is_active: true, is_public: true, max_tokens: 100000, temperature: 0.7},
+        {id: 4, name: "deepseek-chat", provider_id: 4, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7},
+        {id: 5, name: "deepseek-reasoner", provider_id: 4, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7}
       ];
       setModels(mockModels);
     } catch (err: any) {
@@ -166,7 +169,9 @@ export default function LLMRoles({ onSuccess, onError }: LLMRolesProps) {
       const mockRoles = [
         {id: 1, name: "通用助手", description: "通用AI助手", system_prompt: "你是一个有用的AI助手。", model_id: 1, is_default: true, is_public: true},
         {id: 2, name: "程序员", description: "编程助手", system_prompt: "你是一个专业的程序员，擅长解决编程问题。", model_id: 1, is_default: false, is_public: true},
-        {id: 3, name: "写作助手", description: "写作辅助", system_prompt: "你是一个专业的写作助手，擅长文学创作和文章润色。", model_id: 2, is_default: true, is_public: true}
+        {id: 3, name: "写作助手", description: "写作辅助", system_prompt: "你是一个专业的写作助手，擅长文学创作和文章润色。", model_id: 2, is_default: true, is_public: true},
+        {id: 4, name: "默认助手", description: "DeepSeek 默认助手", system_prompt: "你是由DeepSeek AI开发的智能助手，可以回答用户的各种问题并提供帮助。", model_id: 4, is_default: true, is_public: true},
+        {id: 5, name: "推理助手", description: "DeepSeek 推理助手", system_prompt: "你是由DeepSeek AI开发的推理助手，擅长分析问题并提供详细的推理过程。", model_id: 5, is_default: true, is_public: true}
       ];
       setRoles(mockRoles);
     } catch (err: any) {

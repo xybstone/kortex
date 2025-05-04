@@ -111,7 +111,8 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
       const mockProviders = [
         {id: 1, name: "OpenAI", description: "OpenAI API", base_url: "https://api.openai.com/v1", is_public: true},
         {id: 2, name: "Anthropic", description: "Anthropic Claude API", base_url: "https://api.anthropic.com", is_public: true},
-        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true}
+        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true},
+        {id: 4, name: "DeepSeek", description: "DeepSeek AI API", base_url: "https://api.deepseek.com", is_public: true}
       ];
       setProviders(mockProviders);
     } catch (err: any) {
@@ -137,7 +138,9 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
       const mockModels = [
         {id: 1, name: "gpt-4", provider_id: 1, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 8192, temperature: 0.7},
         {id: 2, name: "gpt-3.5-turbo", provider_id: 1, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7},
-        {id: 3, name: "claude-3-opus", provider_id: 2, api_key: "sk_ant-***********", is_active: true, is_public: true, max_tokens: 100000, temperature: 0.7}
+        {id: 3, name: "claude-3-opus", provider_id: 2, api_key: "sk_ant-***********", is_active: true, is_public: true, max_tokens: 100000, temperature: 0.7},
+        {id: 4, name: "deepseek-chat", provider_id: 4, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7},
+        {id: 5, name: "deepseek-reasoner", provider_id: 4, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7}
       ];
       setModels(mockModels);
     } catch (err: any) {

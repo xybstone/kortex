@@ -117,6 +117,7 @@ class ColumnResponse(ColumnBase):
 # LLM相关模式
 class LLMRequest(BaseModel):
     content: str
+    model_id: Optional[int] = None
     options: Optional[Dict[str, Any]] = None
 
 class LLMResponse(BaseModel):

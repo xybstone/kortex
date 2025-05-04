@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Button, 
+import { useState, useEffect } from 'react';
+import {
+  Container,
+  Typography,
+  Box,
+  Button,
   TextField,
   Paper,
   Grid,
@@ -30,76 +30,200 @@ export default function LLM() {
   const [operation, setOperation] = useState('analyze');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDatabase, setSelectedDatabase] = useState('');
-  
+  const [selectedModel, setSelectedModel] = useState('1'); // 默认选择第一个模型
+  const [models, setModels] = useState<Array<{id: number, name: string, provider: string, is_active: boolean}>>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+
   // 模拟数据库列表
   const mockDatabases = [
     { id: '1', name: '项目数据' },
     { id: '2', name: '客户信息' },
     { id: '3', name: '产品目录' },
   ];
-  
-  const handleSubmit = () => {
+
+  // 获取模型列表
+  useEffect(() => {
+    const fetchModels = async () => {
+      setLoadingModels(true);
+      try {
+        // 使用新的接口获取模型列表
+        const response = await fetch('/api/llm/models');
+        if (!response.ok) {
+          throw new Error('获取模型列表失败');
+        }
+        const models = await response.json();
+        setModels(models);
+        if (models && models.length > 0) {
+          setSelectedModel(models[0].id.toString());
+        }
+      } catch (error) {
+        console.error('获取模型列表失败:', error);
+        // 如果获取失败，使用默认模型列表
+        const defaultModels = [
+          {id: 1, name: "gpt-4", provider: "OpenAI", is_active: true},
+          {id: 2, name: "gpt-3.5-turbo", provider: "OpenAI", is_active: true},
+          {id: 3, name: "claude-3-opus", provider: "Anthropic", is_active: true},
+          {id: 4, name: "deepseek-chat", provider: "DeepSeek", is_active: true}
+        ];
+        setModels(defaultModels);
+        setSelectedModel("1");
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+
+    fetchModels();
+  }, []);
+
+  const handleSubmit = async () => {
     if (!inputText) return;
-    
+
     setIsLoading(true);
-    
-    // 模拟API调用
-    setTimeout(() => {
-      let result = '';
-      
+
+    try {
+      console.log(`开始提交${operation}请求，模型ID: ${selectedModel}`);
+      let response;
+
       switch (operation) {
         case 'analyze':
-          result = `## 分析结果\n\n这段文本主要讨论了以下几个方面：\n\n1. 主题：人工智能在现代社会的应用\n2. 观点：人工智能正在改变各个行业的工作方式\n3. 情感：中性，偏向积极\n\n### 关键观点\n\n- 人工智能技术正在快速发展\n- 各行各业都在采用AI解决方案\n- 需要关注AI的伦理问题`;
+          response = await fetch('/api/llm/analyze', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: inputText,
+              model_id: parseInt(selectedModel),
+              options: {}
+            }),
+          });
           break;
         case 'generate':
-          result = `# ${inputText}\n\n人工智能(AI)是计算机科学的一个分支，致力于创建能够模拟人类智能的系统。这些系统能够学习、推理、感知、规划和解决问题。\n\n## 主要应用领域\n\n1. **医疗保健** - 疾病诊断、药物研发、个性化治疗\n2. **金融** - 风险评估、欺诈检测、算法交易\n3. **制造业** - 预测性维护、质量控制、供应链优化\n4. **客户服务** - 聊天机器人、个性化推荐、情感分析\n\n## 技术基础\n\n- 机器学习\n- 深度学习\n- 自然语言处理\n- 计算机视觉\n\n## 未来展望\n\nAI技术将继续发展，并在更多领域找到应用。然而，我们也需要关注伦理问题、隐私保护和就业影响等挑战。`;
+          response = await fetch('/api/llm/generate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: inputText,
+              model_id: parseInt(selectedModel),
+              options: {}
+            }),
+          });
           break;
         case 'summarize':
-          result = `## 摘要\n\n该文本讨论了人工智能的发展及其对社会的影响。主要观点包括AI技术正在各行业广泛应用，带来效率提升和创新，但也引发了关于隐私、就业和伦理的担忧。作者认为需要平衡技术进步与社会影响，建立适当的监管框架。`;
+          response = await fetch('/api/llm/summarize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: inputText,
+              model_id: parseInt(selectedModel),
+              options: {}
+            }),
+          });
           break;
         case 'extract-keywords':
-          result = `## 关键词\n\n- 人工智能\n- 机器学习\n- 自动化\n- 效率提升\n- 技术创新\n- 伦理考量\n- 隐私保护\n- 就业影响\n- 监管框架\n- 社会变革`;
+          response = await fetch('/api/llm/extract-keywords', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: inputText,
+              model_id: parseInt(selectedModel),
+              options: {}
+            }),
+          });
           break;
         case 'analyze-database':
-          result = `## 数据库分析结果\n\n基于"${mockDatabases.find(db => db.id === selectedDatabase)?.name}"数据库的分析：\n\n### 主要发现\n\n1. 销售趋势呈现季节性波动，第四季度表现最佳\n2. 客户满意度与产品质量高度相关\n3. 价格变动对销量的影响因产品类别而异\n\n### 建议\n\n- 增加第四季度的库存和营销预算\n- 重点关注产品质量改进\n- 针对不同产品类别制定差异化定价策略`;
+          response = await fetch('/api/llm/analyze-database', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              database_id: parseInt(selectedDatabase),
+              model_id: parseInt(selectedModel),
+              prompt: inputText
+            }),
+          });
           break;
+        default:
+          throw new Error('未知操作类型');
       }
-      
-      setOutputText(result);
+
+      // 先克隆响应，这样我们可以多次读取
+      const responseClone = response.clone();
+      console.log(`收到响应: 状态码=${response.status}, 状态文本=${response.statusText}`);
+      // 打印一些重要的响应头
+      console.log(`响应头: Content-Type=${response.headers.get('content-type')}, Content-Length=${response.headers.get('content-length')}`);
+
+      if (!response.ok) {
+        try {
+          // 尝试解析错误响应为JSON
+          const errorData = await response.json();
+          throw new Error(errorData.detail || `请求失败: ${response.status} ${response.statusText}`);
+        } catch (jsonError) {
+          // 如果无法解析为JSON，则使用响应状态文本
+          try {
+            const errorText = await responseClone.text();
+            console.error('服务器返回非JSON响应:', errorText);
+          } catch (textError) {
+            console.error('无法读取错误响应内容');
+          }
+          throw new Error(`请求失败: ${response.status} ${response.statusText}`);
+        }
+      }
+
+      // 尝试解析响应为JSON
+      let data;
+      try {
+        data = await responseClone.json();
+      } catch (jsonError) {
+        console.error('解析响应JSON失败:', jsonError);
+        throw new Error('服务器返回了无效的JSON响应');
+      }
+      setOutputText(data.result);
+    } catch (error: any) {
+      console.error('API调用失败:', error);
+      setOutputText(`## 错误\n\n请求处理失败: ${error.message || '未知错误'}`);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
-  
+
   const operationCards = [
-    { 
-      id: 'analyze', 
-      title: '文本分析', 
-      description: '分析文本内容，提取关键观点和情感', 
-      icon: <AnalyticsIcon fontSize="large" /> 
+    {
+      id: 'analyze',
+      title: '文本分析',
+      description: '分析文本内容，提取关键观点和情感',
+      icon: <AnalyticsIcon fontSize="large" />
     },
-    { 
-      id: 'generate', 
-      title: '文本生成', 
-      description: '根据提示生成结构化内容', 
-      icon: <SendIcon fontSize="large" /> 
+    {
+      id: 'generate',
+      title: '文本生成',
+      description: '根据提示生成结构化内容',
+      icon: <SendIcon fontSize="large" />
     },
-    { 
-      id: 'summarize', 
-      title: '生成摘要', 
-      description: '为长文本生成简洁的摘要', 
-      icon: <SummarizeIcon fontSize="large" /> 
+    {
+      id: 'summarize',
+      title: '生成摘要',
+      description: '为长文本生成简洁的摘要',
+      icon: <SummarizeIcon fontSize="large" />
     },
-    { 
-      id: 'extract-keywords', 
-      title: '提取关键词', 
-      description: '从文本中提取关键词和短语', 
-      icon: <LabelIcon fontSize="large" /> 
+    {
+      id: 'extract-keywords',
+      title: '提取关键词',
+      description: '从文本中提取关键词和短语',
+      icon: <LabelIcon fontSize="large" />
     },
-    { 
-      id: 'analyze-database', 
-      title: '数据库分析', 
-      description: '分析数据库内容并生成见解', 
-      icon: <AnalyticsIcon fontSize="large" /> 
+    {
+      id: 'analyze-database',
+      title: '数据库分析',
+      description: '分析数据库内容并生成见解',
+      icon: <AnalyticsIcon fontSize="large" />
     },
   ];
 
@@ -113,14 +237,14 @@ export default function LLM() {
         <Typography variant="h4" component="h1" gutterBottom>
           大模型助手
         </Typography>
-        
+
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {operationCards.map((card) => (
             <Grid item xs={12} sm={6} md={4} lg={2.4} key={card.id}>
-              <Card 
-                sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
                   flexDirection: 'column',
                   cursor: 'pointer',
                   border: operation === card.id ? '2px solid #1976d2' : 'none',
@@ -145,14 +269,50 @@ export default function LLM() {
             </Grid>
           ))}
         </Grid>
-        
+
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3, height: '100%' }}>
               <Typography variant="h6" gutterBottom>
                 输入
               </Typography>
-              
+
+              {/* 模型选择 */}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="model-select-label">选择模型</InputLabel>
+                <Select
+                  labelId="model-select-label"
+                  value={selectedModel}
+                  label="选择模型"
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  disabled={loadingModels}
+                  startAdornment={
+                    loadingModels ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', pl: 1 }}>
+                        <CircularProgress size={20} />
+                      </Box>
+                    ) : null
+                  }
+                >
+                  {models.length === 0 && !loadingModels ? (
+                    <MenuItem disabled value="">
+                      <em>没有可用的模型</em>
+                    </MenuItem>
+                  ) : (
+                    models.map((model) => (
+                      <MenuItem
+                        key={model.id}
+                        value={model.id.toString()}
+                        disabled={!model.is_active}
+                      >
+                        {model.name} ({model.provider})
+                        {!model.is_active && " (禁用)"}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+              </FormControl>
+
               {operation === 'analyze-database' ? (
                 <Box sx={{ mb: 2 }}>
                   <FormControl fullWidth sx={{ mb: 2 }}>
@@ -194,20 +354,35 @@ export default function LLM() {
                   onChange={(e) => setInputText(e.target.value)}
                 />
               )}
-              
+
               <Box sx={{ mt: 2, textAlign: 'right' }}>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   endIcon={<SendIcon />}
                   onClick={handleSubmit}
-                  disabled={isLoading || !inputText || (operation === 'analyze-database' && !selectedDatabase)}
+                  disabled={
+                    isLoading ||
+                    !inputText ||
+                    !selectedModel ||
+                    models.length === 0 ||
+                    (operation === 'analyze-database' && !selectedDatabase)
+                  }
+                  title={
+                    !selectedModel || models.length === 0
+                      ? "请先选择一个可用的模型"
+                      : (operation === 'analyze-database' && !selectedDatabase)
+                        ? "请选择数据库"
+                        : !inputText
+                          ? "请输入内容"
+                          : "提交请求"
+                  }
                 >
                   {isLoading ? <CircularProgress size={24} /> : '提交'}
                 </Button>
               </Box>
             </Paper>
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3, height: '100%' }}>
               <Typography variant="h6" gutterBottom>

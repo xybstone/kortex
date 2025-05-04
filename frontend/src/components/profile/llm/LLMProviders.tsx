@@ -81,7 +81,8 @@ export default function LLMProviders({ onSuccess, onError }: LLMProvidersProps) 
       const mockProviders = [
         {id: 1, name: "OpenAI", description: "OpenAI API", base_url: "https://api.openai.com/v1", is_public: true},
         {id: 2, name: "Anthropic", description: "Anthropic Claude API", base_url: "https://api.anthropic.com", is_public: true},
-        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true}
+        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true},
+        {id: 4, name: "DeepSeek", description: "DeepSeek AI API", base_url: "https://api.deepseek.com", is_public: true}
       ];
       setProviders(mockProviders);
     } catch (err: any) {
