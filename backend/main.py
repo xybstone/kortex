@@ -43,32 +43,33 @@ async def get_llm_status():
     """获取大模型状态"""
     return {"status": "可用", "model": "gpt-3.5-turbo"}
 
-@app.get("/api/llm-config/providers")
-async def get_providers():
-    """获取大模型供应商列表（模拟数据）"""
-    return [
-        {"id": 1, "name": "OpenAI", "description": "OpenAI API", "base_url": "https://api.openai.com/v1"},
-        {"id": 2, "name": "Anthropic", "description": "Anthropic Claude API", "base_url": "https://api.anthropic.com"},
-        {"id": 3, "name": "Gemini", "description": "Google Gemini API", "base_url": "https://generativelanguage.googleapis.com"}
-    ]
-
-@app.get("/api/llm-config/models")
-async def get_models():
-    """获取大模型列表（模拟数据）"""
-    return [
-        {"id": 1, "name": "gpt-4", "provider_id": 1, "api_key": "***********", "is_active": True, "max_tokens": 8192, "temperature": 0.7},
-        {"id": 2, "name": "gpt-3.5-turbo", "provider_id": 1, "api_key": "***********", "is_active": True, "max_tokens": 4096, "temperature": 0.7},
-        {"id": 3, "name": "claude-3-opus", "provider_id": 2, "api_key": "***********", "is_active": True, "max_tokens": 100000, "temperature": 0.7}
-    ]
-
-@app.get("/api/llm-config/roles")
-async def get_roles():
-    """获取大模型角色列表（模拟数据）"""
-    return [
-        {"id": 1, "name": "通用助手", "description": "通用AI助手", "system_prompt": "你是一个有用的AI助手。", "model_id": 1, "is_default": True},
-        {"id": 2, "name": "程序员", "description": "编程助手", "system_prompt": "你是一个专业的程序员，擅长解决编程问题。", "model_id": 1, "is_default": False},
-        {"id": 3, "name": "写作助手", "description": "写作辅助", "system_prompt": "你是一个专业的写作助手，擅长文学创作和文章润色。", "model_id": 2, "is_default": True}
-    ]
+# 以下路由已经在llm_config.py中定义，这里注释掉以避免冲突
+# @app.get("/api/llm-config/providers")
+# async def get_providers():
+#     """获取大模型供应商列表（模拟数据）"""
+#     return [
+#         {"id": 1, "name": "OpenAI", "description": "OpenAI API", "base_url": "https://api.openai.com/v1"},
+#         {"id": 2, "name": "Anthropic", "description": "Anthropic Claude API", "base_url": "https://api.anthropic.com"},
+#         {"id": 3, "name": "Gemini", "description": "Google Gemini API", "base_url": "https://generativelanguage.googleapis.com"}
+#     ]
+#
+# @app.get("/api/llm-config/models")
+# async def get_models():
+#     """获取大模型列表（模拟数据）"""
+#     return [
+#         {"id": 1, "name": "gpt-4", "provider_id": 1, "api_key": "***********", "is_active": True, "max_tokens": 8192, "temperature": 0.7},
+#         {"id": 2, "name": "gpt-3.5-turbo", "provider_id": 1, "api_key": "***********", "is_active": True, "max_tokens": 4096, "temperature": 0.7},
+#         {"id": 3, "name": "claude-3-opus", "provider_id": 2, "api_key": "***********", "is_active": True, "max_tokens": 100000, "temperature": 0.7}
+#     ]
+#
+# @app.get("/api/llm-config/roles")
+# async def get_roles():
+#     """获取大模型角色列表（模拟数据）"""
+#     return [
+#         {"id": 1, "name": "通用助手", "description": "通用AI助手", "system_prompt": "你是一个有用的AI助手。", "model_id": 1, "is_default": True},
+#         {"id": 2, "name": "程序员", "description": "编程助手", "system_prompt": "你是一个专业的程序员，擅长解决编程问题。", "model_id": 1, "is_default": False},
+#         {"id": 3, "name": "写作助手", "description": "写作辅助", "system_prompt": "你是一个专业的写作助手，擅长文学创作和文章润色。", "model_id": 2, "is_default": True}
+#     ]
 
 @app.get("/api/auth/status")
 async def get_auth_status():
