@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
@@ -10,8 +10,11 @@ from passlib.context import CryptContext
 
 # 导入数据库相关模块
 from database.session import SessionLocal, engine
-from models.simple_models import User as DBUser, Note as DBNote, Database as DBDatabase
+from models.simple_models import User as DBUser, SimpleNote as DBNote, Database as DBDatabase
 from core.config import settings
+
+# 导入LLM相关模块
+print("警告：无法导入LLM模块，将使用模拟数据")
 
 app = FastAPI()
 
@@ -23,6 +26,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 注册LLM路由
+# 暂时注释掉，避免错误
+# try:
+#     app.include_router(llm.router, prefix="/api/llm", tags=["大模型"])
+#     print("已成功注册LLM路由")
+# except Exception as e:
+#     print(f"注册LLM路由失败: {e}")
 
 # 密码哈希工具
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -200,8 +211,13 @@ async def get_current_user_info(current_user: DBUser = Depends(get_current_user)
 # 初始化数据库表
 # 注意：在生产环境中，应该使用Alembic进行数据库迁移
 # 这里为了简单起见，直接创建表
-from models.simple_models import Base
-Base.metadata.create_all(bind=engine)
+try:
+    from models.simple_models import Base
+    # 使用create_all时添加checkfirst=True参数，避免重复创建表
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+    print("已初始化数据库表（simple_models）")
+except Exception as e:
+    print(f"初始化数据库表时出错: {e}")
 
 # 创建初始用户
 def init_db():
@@ -229,6 +245,107 @@ def init_db():
 
 # 初始化数据库
 init_db()
+
+# 模拟LLM配置路由
+@app.get("/api/llm-config/providers")
+async def get_providers():
+    """获取大模型供应商列表（模拟数据）"""
+    return [
+        {"id": 1, "name": "OpenAI", "description": "OpenAI API", "base_url": "https://api.openai.com/v1", "is_public": True},
+        {"id": 2, "name": "Anthropic", "description": "Anthropic Claude API", "base_url": "https://api.anthropic.com", "is_public": True},
+        {"id": 3, "name": "Gemini", "description": "Google Gemini API", "base_url": "https://generativelanguage.googleapis.com", "is_public": True},
+        {"id": 4, "name": "DeepSeek", "description": "DeepSeek AI API", "base_url": "https://api.deepseek.com", "is_public": True}
+    ]
+
+@app.get("/api/llm-config/models")
+async def get_models():
+    """获取大模型列表（模拟数据）"""
+    return [
+        {"id": 1, "name": "gpt-4", "provider_id": 1, "api_key": "sk-***********", "is_active": True, "is_public": True, "max_tokens": 8192, "temperature": 0.7},
+        {"id": 2, "name": "gpt-3.5-turbo", "provider_id": 1, "api_key": "sk-***********", "is_active": True, "is_public": True, "max_tokens": 4096, "temperature": 0.7},
+        {"id": 3, "name": "claude-3-opus", "provider_id": 2, "api_key": "sk_ant-***********", "is_active": True, "is_public": True, "max_tokens": 100000, "temperature": 0.7},
+        {"id": 4, "name": "deepseek-chat", "provider_id": 4, "api_key": "sk-***********", "is_active": True, "is_public": True, "max_tokens": 4096, "temperature": 0.7},
+        {"id": 5, "name": "deepseek-reasoner", "provider_id": 4, "api_key": "sk-***********", "is_active": True, "is_public": True, "max_tokens": 4096, "temperature": 0.7}
+    ]
+
+# 添加LLM模型API
+@app.get("/api/llm/models")
+async def get_llm_models():
+    """获取大模型列表（模拟数据）"""
+    return [
+        {"id": 1, "name": "gpt-4", "provider": "OpenAI", "is_active": True},
+        {"id": 2, "name": "gpt-3.5-turbo", "provider": "OpenAI", "is_active": True},
+        {"id": 3, "name": "claude-3-opus", "provider": "Anthropic", "is_active": True},
+        {"id": 4, "name": "deepseek-chat", "provider": "DeepSeek", "is_active": True}
+    ]
+
+# 添加LLM请求模型
+class LLMRequest(BaseModel):
+    content: str
+    model_id: Optional[int] = None
+    options: Optional[Dict[str, Any]] = None
+
+class DatabaseAnalysisRequest(BaseModel):
+    database_id: int
+    model_id: Optional[int] = None
+    prompt: str
+
+# 添加LLM分析API
+@app.post("/api/llm/analyze")
+async def analyze_text(request: LLMRequest):
+    """使用大模型分析文本（模拟）"""
+    return {
+        "result": f"## 分析结果\n\n这段文本主要讨论了以下几个方面：\n\n1. 主题：人工智能在现代社会的应用\n2. 观点：人工智能正在改变各个行业的工作方式\n3. 情感：中性，偏向积极\n\n### 关键观点\n\n- 人工智能技术正在快速发展\n- 各行各业都在采用AI解决方案\n- 需要关注AI的伦理问题",
+        "type": "analysis"
+    }
+
+@app.post("/api/llm/generate")
+async def generate_text(request: LLMRequest):
+    """使用大模型生成文本（模拟）"""
+    return {
+        "result": f"# {request.content}\n\n人工智能(AI)是计算机科学的一个分支，致力于创建能够模拟人类智能的系统。这些系统能够学习、推理、感知、规划和解决问题。\n\n## 主要应用领域\n\n1. **医疗保健** - 疾病诊断、药物研发、个性化治疗\n2. **金融** - 风险评估、欺诈检测、算法交易\n3. **制造业** - 预测性维护、质量控制、供应链优化\n4. **客户服务** - 聊天机器人、个性化推荐、情感分析",
+        "type": "generation"
+    }
+
+@app.post("/api/llm/summarize")
+async def summarize_text(request: LLMRequest):
+    """使用大模型生成摘要（模拟）"""
+    return {
+        "result": f"## 摘要\n\n该文本讨论了人工智能的发展及其对社会的影响。主要观点包括AI技术正在各行业广泛应用，带来效率提升和创新，但也引发了关于隐私、就业和伦理的担忧。作者认为需要平衡技术进步与社会影响，建立适当的监管框架。",
+        "type": "summary"
+    }
+
+@app.post("/api/llm/extract-keywords")
+async def extract_keywords(request: LLMRequest):
+    """使用大模型提取关键词（模拟）"""
+    return {
+        "result": ["人工智能", "机器学习", "自动化", "效率提升", "技术创新", "伦理考量", "隐私保护", "就业影响", "监管框架", "社会变革"],
+        "type": "keywords"
+    }
+
+@app.post("/api/llm/analyze-database")
+async def analyze_database(request: DatabaseAnalysisRequest):
+    """使用大模型分析数据库内容（模拟）"""
+    return {
+        "result": f"## 数据库分析结果\n\n基于数据库ID {request.database_id}的分析：\n\n### 主要发现\n\n1. 销售趋势呈现季节性波动，第四季度表现最佳\n2. 客户满意度与产品质量高度相关\n3. 价格变动对销量的影响因产品类别而异\n\n### 建议\n\n- 增加第四季度的库存和营销预算\n- 重点关注产品质量改进\n- 针对不同产品类别制定差异化定价策略",
+        "type": "database_analysis"
+    }
+
+@app.get("/api/llm-config/roles")
+async def get_roles():
+    """获取大模型角色列表（模拟数据）"""
+    return [
+        {"id": 1, "name": "通用助手", "description": "通用AI助手", "system_prompt": "你是一个有用的AI助手。", "model_id": 1, "is_default": True, "is_public": True},
+        {"id": 2, "name": "程序员", "description": "编程助手", "system_prompt": "你是一个专业的程序员，擅长解决编程问题。", "model_id": 1, "is_default": False, "is_public": True},
+        {"id": 3, "name": "写作助手", "description": "写作辅助", "system_prompt": "你是一个专业的写作助手，擅长文学创作和文章润色。", "model_id": 2, "is_default": True, "is_public": True},
+        {"id": 4, "name": "默认助手", "description": "DeepSeek 默认助手", "system_prompt": "你是由DeepSeek AI开发的智能助手，可以回答用户的各种问题并提供帮助。", "model_id": 4, "is_default": True, "is_public": True},
+        {"id": 5, "name": "推理助手", "description": "DeepSeek 推理助手", "system_prompt": "你是由DeepSeek AI开发的推理助手，擅长分析问题并提供详细的推理过程。", "model_id": 5, "is_default": True, "is_public": True}
+    ]
+
+@app.put("/api/llm-config/models/{model_id}")
+async def update_model(model_id: int, model: dict):
+    """更新LLM模型（模拟）"""
+    return {"id": model_id, **model}
 
 @app.get("/")
 async def root():

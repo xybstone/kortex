@@ -36,10 +36,15 @@
   - 核心层：实现业务逻辑
   - 服务层：集成第三方服务
   - 数据层：管理数据存储和访问
+  - 模型层：定义数据模型和关系
 - **安全特性**：
   - API密钥加密存储
   - JWT认证
   - CORS保护
+- **模型设计**：
+  - 使用SQLAlchemy ORM进行数据建模
+  - 模型命名避免冲突，使用明确的前缀或后缀
+  - 支持模型扩展和继承
 
 ### 数据库
 
@@ -89,10 +94,17 @@
    cd kortex
    ```
 
-2. 使用启动脚本启动应用
+2. 构建并启动应用
 
    ```bash
-   ./docker-start.sh
+   # 使用缓存构建（推荐，速度更快）
+   ./build.sh --use-cache
+
+   # 或从头构建
+   ./build.sh
+
+   # 启动服务
+   docker compose up -d
    ```
 
    这将自动构建并启动所有必要的服务，包括PostgreSQL数据库、后端API和前端应用。
@@ -105,7 +117,20 @@
 4. 停止应用
 
    ```bash
-   ./docker-stop.sh
+   docker compose down
+   ```
+
+5. 查看日志
+
+   ```bash
+   # 查看后端日志
+   docker logs kortex-backend
+
+   # 查看前端日志
+   docker logs kortex-frontend
+
+   # 查看数据库日志
+   docker logs kortex-db
    ```
 
 ### 方法二：手动安装

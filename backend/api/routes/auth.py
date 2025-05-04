@@ -1,40 +1,51 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Optional
 from sqlalchemy.orm import Session
 import os
 
-# 检测环境
-IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
-
-if IS_DOCKER:
-    # Docker环境下使用相对导入
-    from core.dependencies import get_db, get_current_user
-    from models.schemas import *
-    from core.services import *
-else:
-    try:
-        # 尝试使用相对导入
-        from core.dependencies import get_db, get_current_user
-        from models.schemas import *
-        from core.services import *
-    except ImportError:
-        # 尝试使用绝对导入（本地开发环境）
-        from backend.core.dependencies import get_db, get_current_user
-        from backend.models.schemas import *
-        from backend.core.services import *
+# 导入依赖项
+from api.dependencies import get_db, get_current_user
+from core.security import verify_password, get_password_hash, create_access_token
+from models.db_models import User
+from models.schemas import Token, UserCreate, UserResponse, UserBase
 
 router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     """注册新用户"""
-    db_user = auth_service.get_user_by_email(db, email=user.email)
+    # 检查邮箱是否已被注册
+    db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(
             status_code=400,
             detail="该邮箱已被注册"
         )
-    return auth_service.create_user(db=db, user=user)
+
+    # 创建新用户
+    hashed_password = get_password_hash(user.password)
+    db_user = User(
+        email=user.email,
+        hashed_password=hashed_password,
+        full_name=user.full_name,
+        is_active=True,
+        is_admin=False
+    )
+
+    # 保存到数据库
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    return {
+        "id": db_user.id,
+        "email": db_user.email,
+        "full_name": db_user.full_name,
+        "is_active": db_user.is_active,
+        "is_admin": db_user.is_admin,
+        "created_at": db_user.created_at
+    }
 
 @router.post("/login", response_model=Token)
 def login_for_access_token(
@@ -42,19 +53,30 @@ def login_for_access_token(
     db: Session = Depends(get_db)
 ):
     """用户登录获取访问令牌"""
-    user = auth_service.authenticate_user(
-        db, email=form_data.username, password=form_data.password
-    )
-    if not user:
+    # 查询用户
+    user = db.query(User).filter(User.email == form_data.username).first()
+
+    # 验证用户和密码
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="邮箱或密码不正确",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = auth_service.create_access_token(data={"sub": user.email})
+
+    # 创建访问令牌
+    access_token = create_access_token(data={"sub": user.email})
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)
-def read_users_me(current_user: UserResponse = Depends(get_current_user)):
+def read_users_me(current_user: User = Depends(get_current_user)):
     """获取当前登录用户信息"""
-    return current_user
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "is_active": current_user.is_active,
+        "is_admin": current_user.is_admin,
+        "created_at": current_user.created_at
+    }

@@ -19,11 +19,11 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # 关系
-    notes = relationship("SimpleNote", back_populates="user")
+    notes = relationship("Note", back_populates="user")
     databases = relationship("Database", back_populates="user")
 
-class SimpleNote(Base):
-    """简单笔记模型"""
+class Note(Base):
+    """笔记模型"""
     __tablename__ = "notes"
     __table_args__ = {'extend_existing': True}
 
@@ -40,6 +40,7 @@ class SimpleNote(Base):
 class Database(Base):
     """数据库模型"""
     __tablename__ = "databases"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
