@@ -272,22 +272,51 @@ def update_model(
     model_update: LLMModelUpdate
 ) -> Optional[LLMModelResponse]:
     """更新LLM模型"""
+    print(f"更新模型 ID: {model_id}, 更新数据: {model_update}")
     db_model = db.query(LLMModel).filter(LLMModel.id == model_id).first()
     if not db_model:
+        print(f"找不到模型 ID: {model_id}")
         return None
 
-    # 更新模型信息
-    update_data = model_update.model_dump(exclude_unset=True)
+    # 直接更新模型的各个字段
+    if model_update.name is not None:
+        db_model.name = model_update.name
+        print(f"更新名称: {model_update.name}")
 
-    # 如果更新API密钥，进行加密
-    if "api_key" in update_data and update_data["api_key"]:
-        update_data["api_key"] = encrypt_text(update_data["api_key"])
+    if model_update.provider_id is not None:
+        db_model.provider_id = model_update.provider_id
+        print(f"更新供应商ID: {model_update.provider_id}")
 
-    for key, value in update_data.items():
-        setattr(db_model, key, value)
+    if model_update.api_key is not None:
+        encrypted_key = encrypt_text(model_update.api_key)
+        db_model.api_key = encrypted_key
+        print(f"更新API密钥: {model_update.api_key[:3]}*** -> {encrypted_key[:10]}...")
 
-    db.commit()
-    db.refresh(db_model)
+    if model_update.is_active is not None:
+        db_model.is_active = model_update.is_active
+        print(f"更新激活状态: {model_update.is_active}")
+
+    if model_update.is_public is not None:
+        db_model.is_public = model_update.is_public
+        print(f"更新公开状态: {model_update.is_public}")
+
+    if model_update.max_tokens is not None:
+        db_model.max_tokens = model_update.max_tokens
+        print(f"更新最大令牌数: {model_update.max_tokens}")
+
+    if model_update.temperature is not None:
+        db_model.temperature = model_update.temperature
+        print(f"更新温度: {model_update.temperature}")
+
+    try:
+        db.commit()
+        print("数据库提交成功")
+        db.refresh(db_model)
+        print("数据库刷新成功")
+    except Exception as e:
+        print(f"数据库操作失败: {e}")
+        db.rollback()
+        raise
 
     # 获取供应商信息
     provider = db.query(LLMProvider).filter(LLMProvider.id == db_model.provider_id).first()

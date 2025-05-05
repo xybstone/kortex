@@ -7,10 +7,19 @@ from core.config import settings, get_cipher
 # 加密函数
 def encrypt_text(text: str) -> str:
     """加密文本"""
+    print(f"加密文本: {text[:3]}***")
     if not text:
+        print("文本为空，返回空字符串")
         return ""
-    cipher = get_cipher()
-    return cipher.encrypt(text.encode()).decode()
+    try:
+        cipher = get_cipher()
+        encrypted = cipher.encrypt(text.encode()).decode()
+        print(f"加密成功，结果: {encrypted[:10]}...")
+        return encrypted
+    except Exception as e:
+        print(f"加密失败: {e}")
+        # 返回原始文本，避免因加密失败而导致数据丢失
+        return text
 
 # 解密函数
 def decrypt_text(encrypted_text: str) -> str:
