@@ -6,7 +6,6 @@ import {
   Box,
   Button,
   TextField,
-  Paper,
   Divider,
   IconButton,
   Tooltip,
@@ -18,10 +17,6 @@ import {
   ListItem,
   ListItemText,
   Checkbox,
-  Grid,
-  Drawer,
-  Tab,
-  Tabs,
   CircularProgress,
   Alert,
   Snackbar
@@ -55,32 +50,7 @@ interface Database {
   description?: string;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`note-tabpanel-${index}`}
-      aria-labelledby={`note-tab-${index}`}
-      {...other}
-      style={{ height: '100%' }}
-    >
-      {value === index && (
-        <Box sx={{ height: '100%' }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 export default function NotePage() {
   const router = useRouter();
@@ -93,7 +63,6 @@ export default function NotePage() {
   const [databaseDialogOpen, setDatabaseDialogOpen] = useState(false);
   const [selectedDatabases, setSelectedDatabases] = useState<number[]>([]);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
   const editorRef = useRef<any>(null);
 
   // 状态管理
@@ -263,9 +232,7 @@ export default function NotePage() {
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+
 
   const handleInsertText = (text: string) => {
     if (isEditing) {
@@ -355,6 +322,15 @@ export default function NotePage() {
                 >
                   保存
                 </Button>
+                <Tooltip title={chatDrawerOpen ? "关闭AI助手" : "打开AI助手"}>
+                  <IconButton
+                    color={chatDrawerOpen ? "secondary" : "primary"}
+                    onClick={() => setChatDrawerOpen(!chatDrawerOpen)}
+                    sx={{ mr: 1 }}
+                  >
+                    <ChatIcon />
+                  </IconButton>
+                </Tooltip>
                 <Button
                   variant="outlined"
                   onClick={() => {
@@ -388,10 +364,10 @@ export default function NotePage() {
                     <StorageIcon />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="AI助手">
+                <Tooltip title={chatDrawerOpen ? "关闭AI助手" : "打开AI助手"}>
                   <IconButton
-                    color="primary"
-                    onClick={() => setChatDrawerOpen(true)}
+                    color={chatDrawerOpen ? "secondary" : "primary"}
+                    onClick={() => setChatDrawerOpen(!chatDrawerOpen)}
                     sx={{ mr: 1 }}
                   >
                     <ChatIcon />
@@ -409,43 +385,28 @@ export default function NotePage() {
 
         <Divider sx={{ mb: 3 }} />
 
-        <Box sx={{ height: 'calc(100vh - 200px)' }}>
-          {isEditing ? (
+        <Box sx={{ display: 'flex', height: 'calc(100vh - 200px)' }}>
+          {/* AI助手面板 - 左侧 */}
+          {chatDrawerOpen && (
+            <Box sx={{ width: 350, mr: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+              <ChatPanel
+                noteId={id !== 'new' ? parseInt(id as string) : 0}
+                onInsertText={handleInsertText}
+              />
+            </Box>
+          )}
+
+          {/* 编辑器主体 */}
+          <Box sx={{ flexGrow: 1 }}>
             <MarkdownEditor
               initialValue={content}
-              onChange={setContent}
+              onChange={isEditing ? setContent : undefined}
               ref={editorRef}
-            />
-          ) : (
-            <Paper elevation={0} sx={{ p: 3, height: '100%', overflow: 'auto' }}>
-              <MarkdownEditor
-                initialValue={content}
-                onChange={() => {}}
-              />
-            </Paper>
-          )}
-        </Box>
-
-        {/* AI助手抽屉 */}
-        <Drawer
-          anchor="right"
-          open={chatDrawerOpen}
-          onClose={() => setChatDrawerOpen(false)}
-          sx={{
-            width: 400,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: 400,
-            },
-          }}
-        >
-          <Box sx={{ height: '100%' }}>
-            <ChatPanel
-              noteId={id !== 'new' ? parseInt(id as string) : 0}
-              onInsertText={handleInsertText}
+              readOnly={!isEditing}
+              defaultEditMode={isEditing}
             />
           </Box>
-        </Drawer>
+        </Box>
 
         {/* 关联数据库对话框 */}
         <Dialog

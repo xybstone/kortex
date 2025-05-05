@@ -69,7 +69,7 @@ def update_note(
     if db_note.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="没有权限修改此笔记")
 
-    return note_service.update_note(db=db, note_id=note_id, note=note)
+    return note_service.update_note(db=db, note_id=note_id, note_update=note)
 
 @router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_note(
