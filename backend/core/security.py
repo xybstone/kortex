@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from core.config import settings
 from database.session import SessionLocal
-from models.db_models import User
+from models.domain.user import User
 
 # 密码哈希工具
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

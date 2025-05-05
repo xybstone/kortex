@@ -3,8 +3,9 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from api.dependencies import get_db, get_current_user
-from models.db_models import Database, User
-from models.schemas import DatabaseCreate, DatabaseUpdate, DatabaseResponse, TableResponse
+from models.domain import Database, User
+from models.schemas import DatabaseCreate, DatabaseUpdate, DatabaseResponse, TableResponse, UserResponse
+from core.services import database_service
 
 router = APIRouter()
 

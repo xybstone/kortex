@@ -2,27 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-import os
 
-# 检测环境
-IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
-
-if IS_DOCKER:
-    # Docker环境下使用相对导入
-    from core.dependencies import get_db
-    from models.schemas import LLMRequest, LLMResponse
-    from core.services.llm_service import llm_service
-else:
-    try:
-        # 尝试使用相对导入
-        from core.dependencies import get_db
-        from models.schemas import LLMRequest, LLMResponse
-        from core.services.llm_service import llm_service
-    except ImportError:
-        # 尝试使用绝对导入（本地开发环境）
-        from backend.core.dependencies import get_db
-        from backend.models.schemas import LLMRequest, LLMResponse
-        from backend.core.services.llm_service import llm_service
+from core.dependencies import get_db
+from models.schemas import LLMRequest, LLMResponse
+from core.services import llm_service
 
 router = APIRouter()
 
@@ -113,31 +96,8 @@ async def get_status():
 async def get_models(db: Session = Depends(get_db)):
     """获取所有可用的大模型列表"""
     try:
-        # 从数据库获取模型列表
-        from backend.core.services.llm_config_service import get_models
-        models = get_models(db=db)
-
-        # 转换为前端需要的格式
-        result = []
-        for model in models:
-            provider_name = model.provider.name if model.provider else "未知"
-            result.append({
-                "id": model.id,
-                "name": model.name,
-                "provider": provider_name,
-                "is_active": model.is_active
-            })
-
-        # 如果没有模型，返回默认模型列表
-        if not result:
-            result = [
-                {"id": 1, "name": "gpt-4", "provider": "OpenAI", "is_active": True},
-                {"id": 2, "name": "gpt-3.5-turbo", "provider": "OpenAI", "is_active": True},
-                {"id": 3, "name": "claude-3-opus", "provider": "Anthropic", "is_active": True},
-                {"id": 4, "name": "deepseek-chat", "provider": "DeepSeek", "is_active": True}
-            ]
-
-        return result
+        # 使用llm_service获取模型列表
+        return await llm_service.get_available_models(db=db)
     except Exception as e:
         # 如果出错，返回默认模型列表
         print(f"获取模型列表失败: {e}")

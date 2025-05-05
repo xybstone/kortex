@@ -1,27 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from sqlalchemy.orm import Session
-import os
 
-# 检测环境
-IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
-
-if IS_DOCKER:
-    # Docker环境下使用相对导入
-    from core.dependencies import get_db, get_current_user
-    from models.schemas import *
-    from core.services import *
-else:
-    try:
-        # 尝试使用相对导入
-        from core.dependencies import get_db, get_current_user
-        from models.schemas import *
-        from core.services import *
-    except ImportError:
-        # 尝试使用绝对导入（本地开发环境）
-        from backend.core.dependencies import get_db, get_current_user
-        from backend.models.schemas import *
-        from backend.core.services import *
+from core.dependencies import get_db, get_current_user
+from models.schemas import NoteCreate, NoteUpdate, NoteResponse, UserResponse
+from services import note_service
 
 router = APIRouter()
 

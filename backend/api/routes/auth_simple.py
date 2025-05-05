@@ -2,27 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import List, Optional
 from sqlalchemy.orm import Session
-import os
 
-# 检测环境
-IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
-
-if IS_DOCKER:
-    # Docker环境下使用相对导入
-    from core.dependencies import get_db
-    from models.schemas import UserCreate
-    from core.services.auth_service import create_user
-else:
-    try:
-        # 尝试使用相对导入
-        from core.dependencies import get_db
-        from models.schemas import UserCreate
-        from core.services.auth_service import create_user
-    except ImportError:
-        # 尝试使用绝对导入（本地开发环境）
-        from backend.core.dependencies import get_db
-        from backend.models.schemas import UserCreate
-        from backend.core.services.auth_service import create_user
+from core.dependencies import get_db
+from models.schemas import UserCreate
+from core.services.auth_service import create_user
 
 router = APIRouter()
 

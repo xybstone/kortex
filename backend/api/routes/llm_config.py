@@ -1,42 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from sqlalchemy.orm import Session
-import os
 
-# 检测环境
-IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
-
-if IS_DOCKER:
-    # Docker环境下使用相对导入
-    from core.dependencies import get_db, get_current_user
-    from models.schemas import (
-        LLMProviderCreate, LLMProviderUpdate, LLMProviderResponse,
-        LLMModelCreate, LLMModelUpdate, LLMModelResponse,
-        LLMRoleCreate, LLMRoleUpdate, LLMRoleResponse,
-        UserResponse
-    )
-    from core.services import llm_config_service
-else:
-    try:
-        # 尝试使用相对导入
-        from core.dependencies import get_db, get_current_user
-        from models.schemas import (
-            LLMProviderCreate, LLMProviderUpdate, LLMProviderResponse,
-            LLMModelCreate, LLMModelUpdate, LLMModelResponse,
-            LLMRoleCreate, LLMRoleUpdate, LLMRoleResponse,
-            UserResponse
-        )
-        from core.services import llm_config_service
-    except ImportError:
-        # 尝试使用绝对导入（本地开发环境）
-        from backend.core.dependencies import get_db, get_current_user
-        from backend.models.schemas import (
-            LLMProviderCreate, LLMProviderUpdate, LLMProviderResponse,
-            LLMModelCreate, LLMModelUpdate, LLMModelResponse,
-            LLMRoleCreate, LLMRoleUpdate, LLMRoleResponse,
-            UserResponse
-        )
-        from backend.core.services import llm_config_service
+from core.dependencies import get_db, get_current_user
+from models.schemas import (
+    LLMProviderCreate, LLMProviderUpdate, LLMProviderResponse,
+    LLMModelCreate, LLMModelUpdate, LLMModelResponse,
+    LLMRoleCreate, LLMRoleUpdate, LLMRoleResponse,
+    UserResponse
+)
+from core.services import llm_config_service
 router = APIRouter()
 
 # LLM供应商路由

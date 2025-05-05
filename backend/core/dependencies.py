@@ -4,30 +4,11 @@ from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
-import os
 
-# 检测环境
-IS_DOCKER = os.environ.get("IS_DOCKER", "false").lower() == "true"
-
-if IS_DOCKER:
-    # Docker环境下使用相对导入
-    from database.session import SessionLocal
-    from core.config import settings
-    from models.schemas import TokenData, UserResponse
-    from core.services import auth_service
-else:
-    try:
-        # 尝试使用相对导入
-        from database.session import SessionLocal
-        from core.config import settings
-        from models.schemas import TokenData, UserResponse
-        from core.services import auth_service
-    except ImportError:
-        # 尝试使用绝对导入（本地开发环境）
-        from backend.database.session import SessionLocal
-        from backend.core.config import settings
-        from backend.models.schemas import TokenData, UserResponse
-        from backend.core.services import auth_service
+from database.session import SessionLocal
+from core.config import settings
+from models.schemas import TokenData, UserResponse
+from core.services import auth_service
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
