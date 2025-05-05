@@ -103,18 +103,9 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
     setError('');
 
     try {
-      // 使用模拟数据，因为后端API需要认证
-      // const response = await axios.get('http://localhost:8000/api/llm-config/providers');
-      // setProviders(response.data);
-
-      // 模拟数据
-      const mockProviders = [
-        {id: 1, name: "OpenAI", description: "OpenAI API", base_url: "https://api.openai.com/v1", is_public: true},
-        {id: 2, name: "Anthropic", description: "Anthropic Claude API", base_url: "https://api.anthropic.com", is_public: true},
-        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true},
-        {id: 4, name: "DeepSeek", description: "DeepSeek AI API", base_url: "https://api.deepseek.com", is_public: true}
-      ];
-      setProviders(mockProviders);
+      // 从后端API获取真实数据
+      const response = await axios.get('http://localhost:8000/api/llm-config/providers');
+      setProviders(response.data);
     } catch (err: any) {
       console.error('获取供应商列表失败:', err);
       setError(err.response?.data?.detail || '获取供应商列表失败');
@@ -130,19 +121,9 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
     setError('');
 
     try {
-      // 使用模拟数据，因为后端API需要认证
-      // const response = await axios.get('http://localhost:8000/api/llm-config/models');
-      // setModels(response.data);
-
-      // 模拟数据
-      const mockModels = [
-        {id: 1, name: "gpt-4", provider_id: 1, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 8192, temperature: 0.7},
-        {id: 2, name: "gpt-3.5-turbo", provider_id: 1, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7},
-        {id: 3, name: "claude-3-opus", provider_id: 2, api_key: "sk_ant-***********", is_active: true, is_public: true, max_tokens: 100000, temperature: 0.7},
-        {id: 4, name: "deepseek-chat", provider_id: 4, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7},
-        {id: 5, name: "deepseek-reasoner", provider_id: 4, api_key: "sk-***********", is_active: true, is_public: true, max_tokens: 4096, temperature: 0.7}
-      ];
-      setModels(mockModels);
+      // 从后端API获取真实数据
+      const response = await axios.get('http://localhost:8000/api/llm-config/models');
+      setModels(response.data);
     } catch (err: any) {
       console.error('获取模型列表失败:', err);
       setError(err.response?.data?.detail || '获取模型列表失败');
@@ -172,7 +153,7 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
     setModelForm({
       name: model.name,
       provider_id: model.provider_id,
-      api_key: model.api_key || '',
+      api_key: '', // 编辑时不显示API密钥，需要用户重新输入
       is_active: model.is_active,
       is_public: model.is_public,
       max_tokens: model.max_tokens,
@@ -189,12 +170,32 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
   const handleModelSubmit = async () => {
     try {
       if (editingModel) {
-        // 更新模型
-        await axios.put(`http://localhost:8000/api/llm-config/models/${editingModel.id}`, modelForm);
+        // 如果API密钥为空，则不更新API密钥
+        // 创建一个新对象，只包含需要更新的字段
+        const dataToSubmit: Partial<typeof modelForm> = {
+          name: modelForm.name,
+          provider_id: modelForm.provider_id,
+          is_active: modelForm.is_active,
+          is_public: modelForm.is_public,
+          max_tokens: modelForm.max_tokens,
+          temperature: modelForm.temperature
+        };
 
-        // 更新本地状态
+        // 只有当API密钥不为空时，才添加到提交数据中
+        if (modelForm.api_key) {
+          dataToSubmit.api_key = modelForm.api_key;
+        }
+
+        // 更新模型
+        await axios.put(`http://localhost:8000/api/llm-config/models/${editingModel.id}`, dataToSubmit);
+
+        // 更新本地状态（注意：API密钥在显示时会被替换为占位符）
         setModels(models.map(m =>
-          m.id === editingModel.id ? { ...m, ...modelForm } : m
+          m.id === editingModel.id ? {
+            ...m,
+            ...dataToSubmit,
+            api_key: dataToSubmit.api_key ? "********" : m.api_key
+          } : m
         ));
 
         onSuccess('模型更新成功');
@@ -281,7 +282,7 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
                   <>
                     供应商: {getProviderName(model.provider_id)}
                     <br />
-                    API密钥: {showApiKey[model.id] ? model.api_key : '••••••••••••'}
+                    API密钥: {showApiKey[model.id] ? '已加密（出于安全原因无法显示，编辑时可重新设置）' : '••••••••••••'}
                     <br />
                     状态: {model.is_active ? '启用' : '禁用'}
                     <br />
@@ -352,6 +353,7 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
             value={modelForm.api_key}
             onChange={(e) => setModelForm({...modelForm, api_key: e.target.value})}
             type="password"
+            placeholder={editingModel ? "输入新的API密钥（留空则保持不变）" : "输入API密钥"}
             sx={{ mb: 2 }}
           />
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>

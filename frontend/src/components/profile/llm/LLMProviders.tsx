@@ -73,18 +73,9 @@ export default function LLMProviders({ onSuccess, onError }: LLMProvidersProps) 
     setError('');
 
     try {
-      // 使用模拟数据，因为后端API需要认证
-      // const response = await axios.get('http://localhost:8000/api/llm-config/providers');
-      // setProviders(response.data);
-
-      // 模拟数据
-      const mockProviders = [
-        {id: 1, name: "OpenAI", description: "OpenAI API", base_url: "https://api.openai.com/v1", is_public: true},
-        {id: 2, name: "Anthropic", description: "Anthropic Claude API", base_url: "https://api.anthropic.com", is_public: true},
-        {id: 3, name: "Gemini", description: "Google Gemini API", base_url: "https://generativelanguage.googleapis.com", is_public: true},
-        {id: 4, name: "DeepSeek", description: "DeepSeek AI API", base_url: "https://api.deepseek.com", is_public: true}
-      ];
-      setProviders(mockProviders);
+      // 从后端API获取真实数据
+      const response = await axios.get('http://localhost:8000/api/llm-config/providers');
+      setProviders(response.data);
     } catch (err: any) {
       console.error('获取供应商列表失败:', err);
       setError(err.response?.data?.detail || '获取供应商列表失败');
