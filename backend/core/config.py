@@ -50,25 +50,8 @@ settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 if not settings.ENCRYPTION_KEY:
     settings.ENCRYPTION_KEY = Fernet.generate_key().decode()
 
-# 创建加密工具
+# 注意：加密和解密函数已移至utils.security模块
+# 这里保留get_cipher函数供utils.security使用
 def get_cipher():
     key = settings.ENCRYPTION_KEY.encode() if isinstance(settings.ENCRYPTION_KEY, str) else settings.ENCRYPTION_KEY
     return Fernet(key)
-
-# 加密函数
-def encrypt_text(text: str) -> str:
-    if not text:
-        return ""
-    cipher = get_cipher()
-    return cipher.encrypt(text.encode()).decode()
-
-# 解密函数
-def decrypt_text(encrypted_text: str) -> str:
-    if not encrypted_text:
-        return ""
-    cipher = get_cipher()
-    try:
-        return cipher.decrypt(encrypted_text.encode()).decode()
-    except Exception as e:
-        print(f"解密失败: {e}")
-        return ""

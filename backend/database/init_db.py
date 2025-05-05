@@ -3,7 +3,7 @@ from passlib.context import CryptContext
 
 from database.session import SessionLocal, engine
 from models.domain import BaseModel, User, LLMProvider, LLMModel, LLMRole
-from core.config import encrypt_text
+from utils.security import encrypt_text
 
 # 密码哈希工具
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -101,12 +101,6 @@ async def get_models(db: Session = Depends(get_db)):
     except Exception as e:
         # 如果出错，返回默认模型列表
         print(f"获取模型列表失败: {e}")
-        return [
-            {"id": 1, "name": "gpt-4", "provider": "OpenAI", "is_active": True},
-            {"id": 2, "name": "gpt-3.5-turbo", "provider": "OpenAI", "is_active": True},
-            {"id": 3, "name": "claude-3-opus", "provider": "Anthropic", "is_active": True},
-            {"id": 4, "name": "deepseek-chat", "provider": "DeepSeek", "is_active": True}
-        ]
 
 class ChatRequest(BaseModel):
     message: str

@@ -95,12 +95,12 @@ def get_model(model_id: int, db: Session = Depends(get_db)):
     return db_model
 
 @router.put("/models/{model_id}", response_model=LLMModelResponse)
-def update_model(model_id: int, model: LLMModelUpdate, db: Session = Depends(get_db)):
+def update_model(model_id: int, model_update: LLMModelUpdate, db: Session = Depends(get_db)):
     """更新LLM模型"""
     db_model = llm_config_service.get_model(db=db, model_id=model_id)
     if db_model is None:
         raise HTTPException(status_code=404, detail="模型不存在")
-    return llm_config_service.update_model(db=db, model_id=model_id, model=model)
+    return llm_config_service.update_model(db=db, model_id=model_id, model_update=model_update)
 
 @router.delete("/models/{model_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_model(model_id: int, db: Session = Depends(get_db)):
@@ -143,12 +143,12 @@ def get_role(role_id: int, db: Session = Depends(get_db)):
     return db_role
 
 @router.put("/roles/{role_id}", response_model=LLMRoleResponse)
-def update_role(role_id: int, role: LLMRoleUpdate, db: Session = Depends(get_db)):
+def update_role(role_id: int, role_update: LLMRoleUpdate, db: Session = Depends(get_db)):
     """更新LLM角色"""
     db_role = llm_config_service.get_role(db=db, role_id=role_id)
     if db_role is None:
         raise HTTPException(status_code=404, detail="角色不存在")
-    return llm_config_service.update_role(db=db, role_id=role_id, role=role)
+    return llm_config_service.update_role(db=db, role_id=role_id, role_update=role_update)
 
 @router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_role(role_id: int, db: Session = Depends(get_db)):

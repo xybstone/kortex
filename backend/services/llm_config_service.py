@@ -8,7 +8,7 @@ from models.schemas.llm import (
     LLMModelCreate, LLMModelUpdate, LLMModelResponse,
     LLMRoleCreate, LLMRoleUpdate, LLMRoleResponse
 )
-from core.config import settings, encrypt_text, decrypt_text
+from utils.security import encrypt_text
 
 # LLM供应商相关服务
 def create_provider(db: Session, provider: LLMProviderCreate) -> LLMProviderResponse:
@@ -23,7 +23,7 @@ def create_provider(db: Session, provider: LLMProviderCreate) -> LLMProviderResp
     db.add(db_provider)
     db.commit()
     db.refresh(db_provider)
-    
+
     # 转换为响应模型
     return LLMProviderResponse(
         id=db_provider.id,
@@ -37,24 +37,24 @@ def create_provider(db: Session, provider: LLMProviderCreate) -> LLMProviderResp
     )
 
 def get_providers(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None
 ) -> List[LLMProviderResponse]:
     """获取LLM供应商列表"""
     query = db.query(LLMProvider)
-    
+
     # 如果提供了搜索关键词，在名称和描述中搜索
     if search:
         query = query.filter(
             (LLMProvider.name.ilike(f"%{search}%")) |
             (LLMProvider.description.ilike(f"%{search}%"))
         )
-    
+
     # 获取分页结果
     providers = query.order_by(LLMProvider.name).offset(skip).limit(limit).all()
-    
+
     # 转换为响应模型
     return [
         LLMProviderResponse(
@@ -75,7 +75,7 @@ def get_provider(db: Session, provider_id: int) -> Optional[LLMProviderResponse]
     provider = db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
     if not provider:
         return None
-    
+
     # 转换为响应模型
     return LLMProviderResponse(
         id=provider.id,
@@ -89,23 +89,23 @@ def get_provider(db: Session, provider_id: int) -> Optional[LLMProviderResponse]
     )
 
 def update_provider(
-    db: Session, 
-    provider_id: int, 
+    db: Session,
+    provider_id: int,
     provider_update: LLMProviderUpdate
 ) -> Optional[LLMProviderResponse]:
     """更新LLM供应商"""
     db_provider = db.query(LLMProvider).filter(LLMProvider.id == provider_id).first()
     if not db_provider:
         return None
-    
+
     # 更新供应商信息
-    update_data = provider_update.dict(exclude_unset=True)
+    update_data = provider_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_provider, key, value)
-    
+
     db.commit()
     db.refresh(db_provider)
-    
+
     # 转换为响应模型
     return LLMProviderResponse(
         id=db_provider.id,
@@ -132,12 +132,12 @@ def create_model(db: Session, model: LLMModelCreate) -> LLMModelResponse:
     provider = db.query(LLMProvider).filter(LLMProvider.id == model.provider_id).first()
     if not provider:
         raise HTTPException(status_code=404, detail="供应商不存在")
-    
+
     # 如果提供了API密钥，进行加密
     api_key = model.api_key
     if api_key:
         api_key = encrypt_text(api_key)
-    
+
     db_model = LLMModel(
         name=model.name,
         provider_id=model.provider_id,
@@ -151,7 +151,7 @@ def create_model(db: Session, model: LLMModelCreate) -> LLMModelResponse:
     db.add(db_model)
     db.commit()
     db.refresh(db_model)
-    
+
     # 转换为响应模型
     return LLMModelResponse(
         id=db_model.id,
@@ -178,26 +178,26 @@ def create_model(db: Session, model: LLMModelCreate) -> LLMModelResponse:
     )
 
 def get_models(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None,
     provider_id: Optional[int] = None
 ) -> List[LLMModelResponse]:
     """获取LLM模型列表"""
     query = db.query(LLMModel)
-    
+
     # 如果提供了供应商ID，只返回该供应商的模型
     if provider_id:
         query = query.filter(LLMModel.provider_id == provider_id)
-    
+
     # 如果提供了搜索关键词，在名称中搜索
     if search:
         query = query.filter(LLMModel.name.ilike(f"%{search}%"))
-    
+
     # 获取分页结果
     models = query.order_by(LLMModel.name).offset(skip).limit(limit).all()
-    
+
     # 转换为响应模型
     result = []
     for model in models:
@@ -228,7 +228,7 @@ def get_models(
                     )
                 )
             )
-    
+
     return result
 
 def get_model(db: Session, model_id: int) -> Optional[LLMModelResponse]:
@@ -236,11 +236,11 @@ def get_model(db: Session, model_id: int) -> Optional[LLMModelResponse]:
     model = db.query(LLMModel).filter(LLMModel.id == model_id).first()
     if not model:
         return None
-    
+
     provider = db.query(LLMProvider).filter(LLMProvider.id == model.provider_id).first()
     if not provider:
         return None
-    
+
     # 转换为响应模型
     return LLMModelResponse(
         id=model.id,
@@ -267,33 +267,33 @@ def get_model(db: Session, model_id: int) -> Optional[LLMModelResponse]:
     )
 
 def update_model(
-    db: Session, 
-    model_id: int, 
+    db: Session,
+    model_id: int,
     model_update: LLMModelUpdate
 ) -> Optional[LLMModelResponse]:
     """更新LLM模型"""
     db_model = db.query(LLMModel).filter(LLMModel.id == model_id).first()
     if not db_model:
         return None
-    
+
     # 更新模型信息
-    update_data = model_update.dict(exclude_unset=True)
-    
+    update_data = model_update.model_dump(exclude_unset=True)
+
     # 如果更新API密钥，进行加密
     if "api_key" in update_data and update_data["api_key"]:
         update_data["api_key"] = encrypt_text(update_data["api_key"])
-    
+
     for key, value in update_data.items():
         setattr(db_model, key, value)
-    
+
     db.commit()
     db.refresh(db_model)
-    
+
     # 获取供应商信息
     provider = db.query(LLMProvider).filter(LLMProvider.id == db_model.provider_id).first()
     if not provider:
         return None
-    
+
     # 转换为响应模型
     return LLMModelResponse(
         id=db_model.id,
@@ -333,7 +333,7 @@ def create_role(db: Session, role: LLMRoleCreate) -> LLMRoleResponse:
     model = db.query(LLMModel).filter(LLMModel.id == role.model_id).first()
     if not model:
         raise HTTPException(status_code=404, detail="模型不存在")
-    
+
     db_role = LLMRole(
         name=role.name,
         description=role.description,
@@ -346,12 +346,12 @@ def create_role(db: Session, role: LLMRoleCreate) -> LLMRoleResponse:
     db.add(db_role)
     db.commit()
     db.refresh(db_role)
-    
+
     # 获取模型和供应商信息
     provider = db.query(LLMProvider).filter(LLMProvider.id == model.provider_id).first()
     if not provider:
         return None
-    
+
     # 转换为响应模型
     return LLMRoleResponse(
         id=db_role.id,
@@ -390,29 +390,29 @@ def create_role(db: Session, role: LLMRoleCreate) -> LLMRoleResponse:
     )
 
 def get_roles(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
     search: Optional[str] = None,
     model_id: Optional[int] = None
 ) -> List[LLMRoleResponse]:
     """获取LLM角色列表"""
     query = db.query(LLMRole)
-    
+
     # 如果提供了模型ID，只返回该模型的角色
     if model_id:
         query = query.filter(LLMRole.model_id == model_id)
-    
+
     # 如果提供了搜索关键词，在名称和描述中搜索
     if search:
         query = query.filter(
             (LLMRole.name.ilike(f"%{search}%")) |
             (LLMRole.description.ilike(f"%{search}%"))
         )
-    
+
     # 获取分页结果
     roles = query.order_by(LLMRole.name).offset(skip).limit(limit).all()
-    
+
     # 转换为响应模型
     result = []
     for role in roles:
@@ -457,7 +457,7 @@ def get_roles(
                         )
                     )
                 )
-    
+
     return result
 
 def get_role(db: Session, role_id: int) -> Optional[LLMRoleResponse]:
@@ -465,15 +465,15 @@ def get_role(db: Session, role_id: int) -> Optional[LLMRoleResponse]:
     role = db.query(LLMRole).filter(LLMRole.id == role_id).first()
     if not role:
         return None
-    
+
     model = db.query(LLMModel).filter(LLMModel.id == role.model_id).first()
     if not model:
         return None
-    
+
     provider = db.query(LLMProvider).filter(LLMProvider.id == model.provider_id).first()
     if not provider:
         return None
-    
+
     # 转换为响应模型
     return LLMRoleResponse(
         id=role.id,
@@ -512,39 +512,39 @@ def get_role(db: Session, role_id: int) -> Optional[LLMRoleResponse]:
     )
 
 def update_role(
-    db: Session, 
-    role_id: int, 
+    db: Session,
+    role_id: int,
     role_update: LLMRoleUpdate
 ) -> Optional[LLMRoleResponse]:
     """更新LLM角色"""
     db_role = db.query(LLMRole).filter(LLMRole.id == role_id).first()
     if not db_role:
         return None
-    
+
     # 更新角色信息
-    update_data = role_update.dict(exclude_unset=True)
-    
+    update_data = role_update.model_dump(exclude_unset=True)
+
     # 如果更新了模型ID，检查模型是否存在
     if "model_id" in update_data:
         model = db.query(LLMModel).filter(LLMModel.id == update_data["model_id"]).first()
         if not model:
             raise HTTPException(status_code=404, detail="模型不存在")
-    
+
     for key, value in update_data.items():
         setattr(db_role, key, value)
-    
+
     db.commit()
     db.refresh(db_role)
-    
+
     # 获取模型和供应商信息
     model = db.query(LLMModel).filter(LLMModel.id == db_role.model_id).first()
     if not model:
         return None
-    
+
     provider = db.query(LLMProvider).filter(LLMProvider.id == model.provider_id).first()
     if not provider:
         return None
-    
+
     # 转换为响应模型
     return LLMRoleResponse(
         id=db_role.id,

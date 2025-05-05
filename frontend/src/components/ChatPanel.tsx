@@ -15,7 +15,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -23,6 +25,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { conversationApi, llmRoleApi } from '@/services/api';
 
 // 默认角色数据
 const defaultRoles = [
@@ -43,19 +46,17 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 错误提示
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   // 获取笔记的对话列表
   useEffect(() => {
-    if (noteId) {
+    if (noteId && noteId !== 'new') {
       // 调用API获取对话列表
       const fetchConversations = async () => {
         try {
-          // 在实际应用中，这里应该使用axios或fetch调用API
-          // 暂时使用空数组代替mock数据
-          const conversations: any[] = [];
-
-          // 示例API调用代码（取消注释使用）:
-          // const response = await fetch(`/api/conversations/note/${noteId}`);
-          // const conversations = await response.json();
+          // 获取对话列表
+          const conversations = await conversationApi.getNoteConversations(Number(noteId));
 
           if (conversations.length > 0) {
             setSelectedConversation(conversations[0].id);
@@ -63,15 +64,21 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
           } else {
             setSelectedConversation(null);
             // 获取角色列表
-            // const rolesResponse = await fetch('/api/llm-config/roles');
-            // const roles = await rolesResponse.json();
-            // 暂时使用第一个角色
-            setSelectedRole(1);
+            try {
+              const rolesData = await llmRoleApi.getRoles();
+              if (rolesData.length > 0) {
+                setRoles(rolesData);
+                setSelectedRole(rolesData[0].id);
+              }
+            } catch (roleError) {
+              console.error('获取角色列表失败:', roleError);
+              // 使用默认角色
+            }
           }
         } catch (error) {
           console.error('获取对话列表失败:', error);
+          setErrorMessage('获取对话列表失败，请稍后重试');
           setSelectedConversation(null);
-          setSelectedRole(1);
         }
       };
 
@@ -85,16 +92,11 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
       // 调用API获取消息列表
       const fetchMessages = async () => {
         try {
-          // 在实际应用中，这里应该使用axios或fetch调用API
-          // 暂时使用空数组代替mock数据
-          setMessages([]);
-
-          // 示例API调用代码（取消注释使用）:
-          // const response = await fetch(`/api/conversations/${selectedConversation}/messages`);
-          // const data = await response.json();
-          // setMessages(data);
+          const data = await conversationApi.getConversationMessages(selectedConversation);
+          setMessages(data);
         } catch (error) {
           console.error('获取消息失败:', error);
+          setErrorMessage('获取消息失败，请稍后重试');
           setMessages([]);
         }
       };
@@ -113,91 +115,60 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedConversation) return;
 
-    // 添加用户消息
-    const userMessage = {
-      id: Date.now(),
-      conversation_id: selectedConversation,
-      content: message,
-      role: "user",
-      created_at: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    // 保存用户消息内容并清空输入框
     const userMessageContent = message;
     setMessage('');
     setIsLoading(true);
 
     try {
-      // 在实际应用中，这里会调用API发送消息
-      // 示例API调用代码:
-      // const response = await fetch(`/api/conversations/${selectedConversation}/messages`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     content: userMessageContent,
-      //     role: 'user'
-      //   }),
-      // });
-      // const data = await response.json();
+      // 调用API发送消息
+      const response = await conversationApi.sendMessage(selectedConversation, userMessageContent);
 
-      // 模拟API调用延迟
-      setTimeout(() => {
-        // 添加AI响应
-        const aiMessage = {
-          id: Date.now() + 1,
-          conversation_id: selectedConversation,
-          content: `这是对"${userMessageContent}"的回复。在实际应用中，这里会调用大模型API获取响应。`,
-          role: "assistant",
-          created_at: new Date().toISOString()
-        };
-
-        setMessages(prev => [...prev, aiMessage]);
-        setIsLoading(false);
-      }, 1000);
+      // 重新获取消息列表以显示最新的对话
+      const updatedMessages = await conversationApi.getConversationMessages(selectedConversation);
+      setMessages(updatedMessages);
     } catch (error) {
       console.error('发送消息失败:', error);
+      setErrorMessage('发送消息失败，请稍后重试');
+
+      // 如果API调用失败，至少显示用户的消息
+      const userMessage = {
+        id: Date.now(),
+        conversation_id: selectedConversation,
+        content: userMessageContent,
+        role: "user",
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, userMessage]);
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleCreateConversation = async () => {
+    if (!noteId || noteId === 'new') {
+      setErrorMessage('请先保存笔记后再创建对话');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      // 在实际应用中，这里会调用API创建新对话
-      // 示例API调用代码:
-      // const response = await fetch('/api/conversations', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     note_id: Number(noteId),
-      //     role_id: selectedRole
-      //   }),
-      // });
-      // const data = await response.json();
-      // setSelectedConversation(data.id);
+      // 调用API创建新对话
+      const data = await conversationApi.createConversation({
+        note_id: Number(noteId),
+        role_id: selectedRole
+      });
 
-      // 暂时使用模拟数据
-      const newConversationId = Date.now();
-      setSelectedConversation(newConversationId);
+      // 设置当前对话ID
+      setSelectedConversation(data.id);
 
-      // 模拟初始消息
-      setTimeout(() => {
-        const initialMessage = {
-          id: Date.now(),
-          conversation_id: newConversationId,
-          content: `你好，我是AI助手，有什么可以帮助你的？`,
-          role: "assistant",
-          created_at: new Date().toISOString()
-        };
-        setMessages([initialMessage]);
-        setIsLoading(false);
-      }, 500);
+      // 获取初始消息
+      const initialMessages = await conversationApi.getConversationMessages(data.id);
+      setMessages(initialMessages);
     } catch (error) {
       console.error('创建对话失败:', error);
+      setErrorMessage('创建对话失败，请稍后重试');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -207,25 +178,33 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
 
     try {
       setIsLoading(true);
-      // 在实际应用中，这里会调用API删除对话
-      // 示例API调用代码:
-      // await fetch(`/api/conversations/${selectedConversation}`, {
-      //   method: 'DELETE'
-      // });
+      // 调用API删除对话
+      await conversationApi.deleteConversation(selectedConversation);
 
       // 删除后重新获取对话列表
-      // const response = await fetch(`/api/conversations/note/${noteId}`);
-      // const conversations = await response.json();
-
-      // 暂时使用模拟逻辑
-      setSelectedConversation(null);
-      setSelectedRole(1);
-      setMessages([]);
-      setIsLoading(false);
+      if (noteId && noteId !== 'new') {
+        const conversations = await conversationApi.getNoteConversations(Number(noteId));
+        if (conversations.length > 0) {
+          setSelectedConversation(conversations[0].id);
+          setSelectedRole(conversations[0].role_id);
+          const messages = await conversationApi.getConversationMessages(conversations[0].id);
+          setMessages(messages);
+        } else {
+          setSelectedConversation(null);
+          setMessages([]);
+        }
+      }
     } catch (error) {
       console.error('删除对话失败:', error);
+      setErrorMessage('删除对话失败，请稍后重试');
+    } finally {
       setIsLoading(false);
     }
+  };
+
+  // 关闭错误提示
+  const handleCloseError = () => {
+    setErrorMessage(null);
   };
 
   const handleInsertToNote = (text: string) => {
@@ -236,6 +215,18 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* 错误提示 */}
+      <Snackbar
+        open={!!errorMessage}
+        autoHideDuration={6000}
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
+
       <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
         <Typography variant="h6" gutterBottom>
           AI助手
@@ -359,7 +350,7 @@ export default function ChatPanel({ noteId, onInsertText }: ChatPanelProps) {
                 placeholder="输入消息..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSendMessage();
