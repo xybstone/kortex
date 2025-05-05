@@ -40,6 +40,11 @@ export default function MarkdownEditor({
     }
   }, [markdownText, onChange]);
 
+  // 当initialValue变化时更新编辑器内容
+  useEffect(() => {
+    setMarkdownText(initialValue);
+  }, [initialValue]);
+
   // 当readOnly或defaultEditMode属性变化时更新视图模式
   useEffect(() => {
     if (readOnly) {

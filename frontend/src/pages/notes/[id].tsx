@@ -235,9 +235,22 @@ export default function NotePage() {
 
 
   const handleInsertText = (text: string) => {
-    if (isEditing) {
+    // 如果不在编辑模式，先切换到编辑模式
+    if (!isEditing) {
+      setIsEditing(true);
+      // 使用setTimeout确保状态更新后再插入文本
+      setTimeout(() => {
+        setContent(prev => prev + '\n\n' + text);
+      }, 100);
+    } else {
+      // 已经在编辑模式，直接插入文本
       setContent(prev => prev + '\n\n' + text);
     }
+
+    // 显示提示消息
+    setSnackbarMessage('文本已插入到笔记');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
   };
 
   // 加载状态
