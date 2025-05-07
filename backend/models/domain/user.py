@@ -16,7 +16,7 @@ class User(BaseModel, TimestampMixin):
 
     # 关系
     domain_notes = relationship("Note", back_populates="user")
-    databases = relationship("Database", back_populates="user")
+    datasets = relationship("Dataset", back_populates="user")
     llm_providers = relationship("LLMProvider", back_populates="user")
     llm_models = relationship("LLMModel", back_populates="user")
     llm_roles = relationship("LLMRole", back_populates="user")

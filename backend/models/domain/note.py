@@ -3,12 +3,12 @@ from sqlalchemy.orm import relationship
 
 from models.domain.base import BaseModel, TimestampMixin
 
-# 笔记与数据库的多对多关系表
-note_database = Table(
-    "note_database",
+# 笔记与数据集的多对多关系表
+note_dataset = Table(
+    "note_dataset",
     BaseModel.metadata,
     Column("note_id", ForeignKey("domain_notes.id"), primary_key=True),
-    Column("database_id", ForeignKey("databases.id"), primary_key=True)
+    Column("dataset_id", ForeignKey("datasets.id"), primary_key=True)
 )
 
 class Note(BaseModel, TimestampMixin):
@@ -22,5 +22,5 @@ class Note(BaseModel, TimestampMixin):
 
     # 关系
     user = relationship("User", back_populates="domain_notes")
-    databases = relationship("Database", secondary=note_database, back_populates="notes")
+    datasets = relationship("Dataset", secondary=note_dataset, back_populates="notes")
     conversations = relationship("Conversation", back_populates="note")

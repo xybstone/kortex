@@ -122,7 +122,7 @@ export default function LLMModels({ onSuccess, onError }: LLMModelsProps) {
 
     try {
       // 从后端API获取真实数据
-      const response = await axios.get('http://localhost:8000/api/llm-config/models');
+      const response = await axios.get('/api/llm-config/models');
       setModels(response.data);
     } catch (err: any) {
       console.error('获取模型列表失败:', err);

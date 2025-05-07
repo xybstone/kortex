@@ -2,10 +2,10 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from sqlalchemy import or_
 
-from models.domain.note import Note, note_database
-from models.domain.database import Database
-from models.schemas.note import NoteCreate, NoteUpdate, NoteResponse
-from models.schemas.database import DatabaseBrief
+from models.domain.note import Note, note_dataset
+from models.domain.dataset import Dataset
+from models.schemas.note import NoteCreate, NoteUpdate, NoteResponse, DatabaseBrief
+from models.schemas.dataset import DatasetBrief
 
 def create_note(db: Session, note: NoteCreate) -> NoteResponse:
     """创建新笔记"""
@@ -18,13 +18,18 @@ def create_note(db: Session, note: NoteCreate) -> NoteResponse:
     db.commit()
     db.refresh(db_note)
 
-    # 如果提供了关联的数据库ID，创建关联关系
+    # 数据库关联功能已移除
     if note.database_ids:
-        for db_id in note.database_ids:
-            # 检查数据库是否存在
-            db_database = db.query(Database).filter(Database.id == db_id).first()
-            if db_database:
-                db_note.databases.append(db_database)
+        # 不再支持数据库关联
+        pass
+
+    # 如果提供了关联的数据集ID，创建关联关系
+    if note.dataset_ids:
+        for ds_id in note.dataset_ids:
+            # 检查数据集是否存在
+            db_dataset = db.query(Dataset).filter(Dataset.id == ds_id).first()
+            if db_dataset:
+                db_note.datasets.append(db_dataset)
         db.commit()
         db.refresh(db_note)
 
@@ -36,7 +41,8 @@ def create_note(db: Session, note: NoteCreate) -> NoteResponse:
         user_id=db_note.user_id,
         created_at=db_note.created_at,
         updated_at=db_note.updated_at,
-        databases=[DatabaseBrief(id=db.id, name=db.name) for db in db_note.databases] if db_note.databases else None
+        databases=None,  # 数据库关联功能已移除
+        datasets=[DatasetBrief(id=ds.id, name=ds.name) for ds in db_note.datasets] if db_note.datasets else None
     )
 
 def get_notes(
@@ -74,7 +80,8 @@ def get_notes(
             user_id=note.user_id,
             created_at=note.created_at,
             updated_at=note.updated_at,
-            databases=[DatabaseBrief(id=db.id, name=db.name) for db in note.databases] if note.databases else None
+            databases=None,  # 数据库关联功能已移除
+            datasets=None  # 添加数据集字段
         )
         for note in notes
     ]
@@ -93,7 +100,8 @@ def get_note(db: Session, note_id: int) -> Optional[NoteResponse]:
         user_id=note.user_id,
         created_at=note.created_at,
         updated_at=note.updated_at,
-        databases=[DatabaseBrief(id=db.id, name=db.name) for db in note.databases] if note.databases else None
+        databases=None,  # 数据库关联功能已移除
+        datasets=[DatasetBrief(id=ds.id, name=ds.name) for ds in note.datasets] if note.datasets else None
     )
 
 def update_note(db: Session, note_id: int, note_update: NoteUpdate) -> NoteResponse:
@@ -103,20 +111,25 @@ def update_note(db: Session, note_id: int, note_update: NoteUpdate) -> NoteRespo
         return None
 
     # 更新笔记基本信息
-    update_data = note_update.model_dump(exclude_unset=True, exclude={"database_ids"})
+    update_data = note_update.model_dump(exclude_unset=True, exclude={"database_ids", "dataset_ids"})
     for key, value in update_data.items():
         setattr(db_note, key, value)
 
-    # 如果提供了数据库ID列表，更新关联关系
+    # 数据库关联功能已移除
     if note_update.database_ids is not None:
+        # 不再支持数据库关联
+        pass
+
+    # 如果提供了数据集ID列表，更新关联关系
+    if note_update.dataset_ids is not None:
         # 清除现有关联
-        db_note.databases = []
+        db_note.datasets = []
 
         # 创建新关联
-        for db_id in note_update.database_ids:
-            db_database = db.query(Database).filter(Database.id == db_id).first()
-            if db_database:
-                db_note.databases.append(db_database)
+        for ds_id in note_update.dataset_ids:
+            db_dataset = db.query(Dataset).filter(Dataset.id == ds_id).first()
+            if db_dataset:
+                db_note.datasets.append(db_dataset)
 
     db.commit()
     db.refresh(db_note)
@@ -129,7 +142,8 @@ def update_note(db: Session, note_id: int, note_update: NoteUpdate) -> NoteRespo
         user_id=db_note.user_id,
         created_at=db_note.created_at,
         updated_at=db_note.updated_at,
-        databases=[DatabaseBrief(id=db.id, name=db.name) for db in db_note.databases] if db_note.databases else None
+        databases=None,  # 数据库关联功能已移除
+        datasets=[DatasetBrief(id=ds.id, name=ds.name) for ds in db_note.datasets] if db_note.datasets else None
     )
 
 def delete_note(db: Session, note_id: int) -> None:

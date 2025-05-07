@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
 from database.session import SessionLocal, engine
-from models.domain import BaseModel, User, LLMProvider, LLMModel, LLMRole
+from models.domain import BaseModel, User, LLMProvider, LLMModel, LLMRole, Dataset, DatabaseSource, FileSource, URLSource
 from utils.security import encrypt_text
 
 # 密码哈希工具
@@ -32,6 +32,9 @@ def init_db() -> None:
 
         # 创建默认LLM角色
         create_default_roles(db)
+
+        # 创建默认数据集
+        create_default_datasets(db)
     except Exception as e:
         print(f"初始化数据库时出错: {e}")
     finally:
@@ -234,3 +237,69 @@ def create_default_roles(db: Session) -> None:
             db.add(role)
             db.commit()
             print(f"已创建默认角色: {role_data['name']}")
+
+def create_default_datasets(db: Session) -> None:
+    """创建默认数据集"""
+    # 获取默认用户
+    user = db.query(User).filter(User.email == "user@example.com").first()
+    if not user:
+        print("无法创建默认数据集：缺少用户")
+        return
+
+    # 默认数据集列表
+    default_datasets = [
+        {
+            "name": "示例数据集",
+            "description": "这是一个示例数据集，包含不同类型的数据源",
+            "user_id": user.id
+        }
+    ]
+
+    # 检查并创建数据集
+    for dataset_data in default_datasets:
+        dataset = db.query(Dataset).filter(
+            Dataset.name == dataset_data["name"],
+            Dataset.user_id == dataset_data["user_id"]
+        ).first()
+        if not dataset:
+            dataset = Dataset(**dataset_data)
+            db.add(dataset)
+            db.commit()
+            db.refresh(dataset)
+            print(f"已创建默认数据集: {dataset_data['name']}")
+
+            # 为示例数据集创建示例数据源
+            if dataset.name == "示例数据集":
+                # 创建数据库类型数据源
+                db_source = DatabaseSource(
+                    name="示例数据库",
+                    description="PostgreSQL数据库连接示例",
+                    dataset_id=dataset.id,
+                    connection_string="postgresql://user:password@localhost:5432/example",
+                    database_type="postgresql"
+                )
+                db.add(db_source)
+
+                # 创建文件类型数据源
+                file_source = FileSource(
+                    name="示例文档",
+                    description="PDF文档示例",
+                    dataset_id=dataset.id,
+                    file_path="/path/to/example.pdf",
+                    file_type="pdf",
+                    file_size=1024
+                )
+                db.add(file_source)
+
+                # 创建URL类型数据源
+                url_source = URLSource(
+                    name="示例网页",
+                    description="网页内容示例",
+                    dataset_id=dataset.id,
+                    url="https://example.com",
+                    crawl_depth=2
+                )
+                db.add(url_source)
+
+                db.commit()
+                print(f"已为数据集 '{dataset.name}' 创建示例数据源")

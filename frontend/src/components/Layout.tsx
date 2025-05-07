@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const menuItems = [
     { text: '笔记', icon: <NoteIcon />, path: '/notes' },
-    { text: '数据库', icon: <StorageIcon />, path: '/databases' },
+    { text: '数据集', icon: <StorageIcon />, path: '/datasets' },
     { text: '大模型', icon: <SmartToyIcon />, path: '/llm' },
   ];
 

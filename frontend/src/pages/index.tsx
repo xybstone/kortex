@@ -37,17 +37,17 @@ export default function Home() {
               一个在线笔记工具，支持Markdown编辑、数据库管理和大模型集成
             </Typography>
             <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
-              <Button 
-                variant="contained" 
-                color="primary" 
+              <Button
+                variant="contained"
+                color="primary"
                 size="large"
                 onClick={() => router.push('/notes')}
               >
                 开始使用
               </Button>
-              <Button 
-                variant="outlined" 
-                color="primary" 
+              <Button
+                variant="outlined"
+                color="primary"
                 size="large"
                 onClick={() => router.push('/about')}
               >
@@ -56,7 +56,7 @@ export default function Home() {
             </Box>
           </Container>
         </Box>
-        
+
         <Container sx={{ py: 8 }} maxWidth="md">
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
@@ -72,10 +72,10 @@ export default function Home() {
             <Grid item xs={12} md={4}>
               <Box sx={{ textAlign: 'center', p: 2 }}>
                 <Typography variant="h6" gutterBottom>
-                  数据库管理
+                  数据集管理
                 </Typography>
                 <Typography color="text.secondary">
-                  支持创建、导入和管理数据库，轻松处理结构化数据
+                  支持创建、导入和管理多种数据源，轻松处理结构化和非结构化数据
                 </Typography>
               </Box>
             </Grid>

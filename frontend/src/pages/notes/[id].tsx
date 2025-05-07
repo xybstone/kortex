@@ -19,35 +19,60 @@ import {
   Checkbox,
   CircularProgress,
   Alert,
-  Snackbar
+  Snackbar,
+  Tab,
+  Tabs
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import StorageIcon from '@mui/icons-material/Storage';
+import DatasetIcon from '@mui/icons-material/Dataset';
 import ChatIcon from '@mui/icons-material/Chat';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import ChatPanel from '@/components/ChatPanel';
-import { noteApi, databaseApi } from '@/services/api';
+import noteApi from '@/services/noteApi';
+import datasetApi from '@/services/datasetApi';
 
-// 笔记类型定义
-interface Note {
-  id: number;
-  title: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  user_id: number;
-  databases?: Database[];
-}
+// 接口定义使用导入的类型
+import { Note, CreateNoteRequest, UpdateNoteRequest } from '@/services/noteApi';
+import { Dataset } from '@/services/datasetApi';
 
-// 数据库类型定义
+// 临时定义数据库类型，以便兼容现有代码
 interface Database {
   id: number;
   name: string;
   description?: string;
+}
+
+// 标签面板属性
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+// 标签面板组件
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`association-tabpanel-${index}`}
+      aria-labelledby={`association-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 2 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
 }
 
 
@@ -60,8 +85,10 @@ export default function NotePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [databaseDialogOpen, setDatabaseDialogOpen] = useState(false);
+  const [associationDialogOpen, setAssociationDialogOpen] = useState(false);
+  const [associationTabValue, setAssociationTabValue] = useState(0);
   const [selectedDatabases, setSelectedDatabases] = useState<number[]>([]);
+  const [selectedDatasets, setSelectedDatasets] = useState<number[]>([]);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const editorRef = useRef<any>(null);
 
@@ -69,25 +96,31 @@ export default function NotePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [databases, setDatabases] = useState<Database[]>([]);
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // 获取数据库列表
+  // 获取数据集列表
   useEffect(() => {
-    const fetchDatabases = async () => {
+    const fetchData = async () => {
       try {
-        const data = await databaseApi.getDatabases();
-        setDatabases(data);
+        // 获取数据集列表
+        const dsData = await datasetApi.getDatasets();
+        setDatasets(dsData);
+
+        // 使用空数组代替数据库列表
+        setDatabases([]);
       } catch (err) {
-        console.error('获取数据库列表失败:', err);
+        console.error('获取数据失败:', err);
         // 使用空数组
         setDatabases([]);
+        setDatasets([]);
       }
     };
 
-    fetchDatabases();
+    fetchData();
   }, []);
 
   // 获取笔记数据
@@ -99,6 +132,7 @@ export default function NotePage() {
         setContent('');
         setIsEditing(true);
         setSelectedDatabases([]);
+        setSelectedDatasets([]);
       } else {
         const fetchNote = async () => {
           try {
@@ -112,9 +146,16 @@ export default function NotePage() {
 
             // 设置已关联的数据库
             if (data.databases) {
-              setSelectedDatabases(data.databases.map((db: Database) => db.id));
+              setSelectedDatabases(data.databases.map((db) => db.id));
             } else {
               setSelectedDatabases([]);
+            }
+
+            // 设置已关联的数据集
+            if (data.datasets) {
+              setSelectedDatasets(data.datasets.map((ds) => ds.id));
+            } else {
+              setSelectedDatasets([]);
             }
           } catch (err) {
             console.error('获取笔记详情失败:', err);
@@ -147,7 +188,8 @@ export default function NotePage() {
       const noteData = {
         title,
         content,
-        database_ids: selectedDatabases
+        database_ids: selectedDatabases,
+        dataset_ids: selectedDatasets
       };
 
       if (id === 'new') {
@@ -201,6 +243,7 @@ export default function NotePage() {
     setDeleteDialogOpen(true);
   };
 
+  // 处理数据库选择切换
   const handleDatabaseToggle = (databaseId: number) => {
     const currentIndex = selectedDatabases.indexOf(databaseId);
     const newSelectedDatabases = [...selectedDatabases];
@@ -214,19 +257,42 @@ export default function NotePage() {
     setSelectedDatabases(newSelectedDatabases);
   };
 
-  const handleSaveDatabaseAssociations = async () => {
+  // 处理数据集选择切换
+  const handleDatasetToggle = (datasetId: number) => {
+    const currentIndex = selectedDatasets.indexOf(datasetId);
+    const newSelectedDatasets = [...selectedDatasets];
+
+    if (currentIndex === -1) {
+      newSelectedDatasets.push(datasetId);
+    } else {
+      newSelectedDatasets.splice(currentIndex, 1);
+    }
+
+    setSelectedDatasets(newSelectedDatasets);
+  };
+
+  // 处理关联标签页切换
+  const handleAssociationTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setAssociationTabValue(newValue);
+  };
+
+  // 保存关联
+  const handleSaveAssociations = async () => {
     try {
       if (id !== 'new') {
-        // 更新笔记的数据库关联
-        await noteApi.updateNote(parseInt(id as string), { database_ids: selectedDatabases });
-        setSnackbarMessage('数据库关联已保存');
+        // 更新笔记的数据库和数据集关联
+        await noteApi.updateNote(parseInt(id as string), {
+          database_ids: selectedDatabases,
+          dataset_ids: selectedDatasets
+        });
+        setSnackbarMessage('关联已保存');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
       }
-      setDatabaseDialogOpen(false);
+      setAssociationDialogOpen(false);
     } catch (err) {
-      console.error('保存数据库关联失败:', err);
-      setSnackbarMessage('保存数据库关联失败，请稍后重试');
+      console.error('保存关联失败:', err);
+      setSnackbarMessage('保存关联失败，请稍后重试');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
@@ -368,10 +434,10 @@ export default function NotePage() {
                 >
                   编辑
                 </Button>
-                <Tooltip title="关联数据库">
+                <Tooltip title="关联数据源">
                   <IconButton
                     color="primary"
-                    onClick={() => setDatabaseDialogOpen(true)}
+                    onClick={() => setAssociationDialogOpen(true)}
                     sx={{ mr: 1 }}
                   >
                     <StorageIcon />
@@ -421,45 +487,80 @@ export default function NotePage() {
           </Box>
         </Box>
 
-        {/* 关联数据库对话框 */}
+        {/* 关联数据源对话框 */}
         <Dialog
-          open={databaseDialogOpen}
-          onClose={() => setDatabaseDialogOpen(false)}
-          maxWidth="sm"
+          open={associationDialogOpen}
+          onClose={() => setAssociationDialogOpen(false)}
+          maxWidth="md"
           fullWidth
         >
-          <DialogTitle>关联数据库</DialogTitle>
+          <DialogTitle>关联数据源</DialogTitle>
           <DialogContent>
-            {databases.length === 0 ? (
-              <Typography color="text.secondary" sx={{ py: 2 }}>
-                暂无可用的数据库，请先创建数据库
-              </Typography>
-            ) : (
-              <List>
-                {databases.map((database) => (
-                  <ListItem key={database.id}>
-                    <Checkbox
-                      edge="start"
-                      checked={selectedDatabases.indexOf(database.id) !== -1}
-                      onChange={() => handleDatabaseToggle(database.id)}
-                    />
-                    <ListItemText
-                      primary={database.name}
-                      secondary={database.description}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            )}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+              <Tabs value={associationTabValue} onChange={handleAssociationTabChange}>
+                <Tab label="数据库" id="association-tab-0" aria-controls="association-tabpanel-0" />
+                <Tab label="数据集" id="association-tab-1" aria-controls="association-tabpanel-1" />
+              </Tabs>
+            </Box>
+
+            {/* 数据库标签页 */}
+            <TabPanel value={associationTabValue} index={0}>
+              {databases.length === 0 ? (
+                <Typography color="text.secondary" sx={{ py: 2 }}>
+                  暂无可用的数据库，请先创建数据库
+                </Typography>
+              ) : (
+                <List>
+                  {databases.map((database) => (
+                    <ListItem key={database.id}>
+                      <Checkbox
+                        edge="start"
+                        checked={selectedDatabases.indexOf(database.id) !== -1}
+                        onChange={() => handleDatabaseToggle(database.id)}
+                      />
+                      <ListItemText
+                        primary={database.name}
+                        secondary={database.description}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </TabPanel>
+
+            {/* 数据集标签页 */}
+            <TabPanel value={associationTabValue} index={1}>
+              {datasets.length === 0 ? (
+                <Typography color="text.secondary" sx={{ py: 2 }}>
+                  暂无可用的数据集，请先创建数据集
+                </Typography>
+              ) : (
+                <List>
+                  {datasets.map((dataset) => (
+                    <ListItem key={dataset.id}>
+                      <Checkbox
+                        edge="start"
+                        checked={selectedDatasets.indexOf(dataset.id) !== -1}
+                        onChange={() => handleDatasetToggle(dataset.id)}
+                      />
+                      <ListItemText
+                        primary={dataset.name}
+                        secondary={dataset.description}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </TabPanel>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDatabaseDialogOpen(false)}>
+            <Button onClick={() => setAssociationDialogOpen(false)}>
               取消
             </Button>
             <Button
               variant="contained"
-              onClick={handleSaveDatabaseAssociations}
-              disabled={databases.length === 0}
+              onClick={handleSaveAssociations}
+              disabled={databases.length === 0 && datasets.length === 0}
             >
               保存
             </Button>

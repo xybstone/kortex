@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
         // 获取当前用户信息
-        const response = await axios.get('http://localhost:8000/api/auth/me');
+        const response = await axios.get('/api/auth/me');
         setUser(response.data);
       } catch (err) {
         console.error('获取用户信息失败:', err);
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       params.append('username', email);
       params.append('password', password);
 
-      const response = await axios.post('http://localhost:8000/api/auth/login', params);
+      const response = await axios.post('/api/auth/login', params);
 
       // 保存token到localStorage
       const token = response.data.access_token;
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       // 获取用户信息
-      const userResponse = await axios.get('http://localhost:8000/api/auth/me');
+      const userResponse = await axios.get('/api/auth/me');
       setUser(userResponse.data);
 
       // 重定向到首页
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      await axios.post('http://localhost:8000/api/auth/register', {
+      await axios.post('/api/auth/register', {
         email,
         password,
         full_name: fullName

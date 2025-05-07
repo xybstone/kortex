@@ -1,10 +1,12 @@
 from models.schemas.user import UserBase, UserCreate, UserUpdate, UserResponse
 from models.schemas.token import Token, TokenData
 from models.schemas.note import NoteBase, NoteCreate, NoteUpdate, NoteResponse
-from models.schemas.database import (
-    DatabaseBase, DatabaseCreate, DatabaseUpdate, DatabaseResponse, DatabaseBrief,
-    TableBase, TableBrief, TableResponse,
-    ColumnBase, ColumnResponse
+from models.schemas.dataset import (
+    DatasetBase, DatasetCreate, DatasetUpdate, DatasetResponse, DatasetBrief,
+    DataSourceBase, DataSourceCreate, DataSourceUpdate, DataSourceResponse,
+    DatabaseSourceCreate, DatabaseSourceUpdate, DatabaseSourceResponse,
+    FileSourceCreate, FileSourceUpdate, FileSourceResponse,
+    URLSourceCreate, URLSourceUpdate, URLSourceResponse
 )
 from models.schemas.llm import (
     LLMRequest, LLMResponse, DatabaseAnalysisRequest,
@@ -19,8 +21,6 @@ from models.schemas.conversation import (
 
 # 更新引用
 NoteResponse.model_rebuild()
-DatabaseResponse.model_rebuild()
-TableResponse.model_rebuild()
 ConversationResponse.model_rebuild()
 LLMModelResponse.model_rebuild()
 LLMRoleResponse.model_rebuild()
