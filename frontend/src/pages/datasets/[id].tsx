@@ -37,6 +37,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import StorageIcon from '@mui/icons-material/Storage';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import LinkIcon from '@mui/icons-material/Link';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import datasetApi, {
@@ -49,6 +50,8 @@ import datasetApi, {
   CreateURLSourceRequest,
   UpdateDatasetRequest
 } from '@/services/datasetApi';
+import TaskList from '@/components/processing/TaskList';
+import CreateTaskDialog from '@/components/processing/CreateTaskDialog';
 
 // 标签面板属性
 interface TabPanelProps {
@@ -91,7 +94,9 @@ export default function DatasetDetail() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false);
   const [deleteSourceDialogOpen, setDeleteSourceDialogOpen] = useState(false);
+  const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState<number | null>(null);
+  const [selectedSource, setSelectedSource] = useState<DataSource | null>(null);
 
   // 表单状态
   const [datasetName, setDatasetName] = useState('');
@@ -424,7 +429,8 @@ export default function DatasetDetail() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="数据集标签页">
             <Tab label="数据源" id="dataset-tab-0" aria-controls="dataset-tabpanel-0" />
-            <Tab label="关联笔记" id="dataset-tab-1" aria-controls="dataset-tabpanel-1" />
+            <Tab label="处理任务" id="dataset-tab-1" aria-controls="dataset-tabpanel-1" />
+            <Tab label="关联笔记" id="dataset-tab-2" aria-controls="dataset-tabpanel-2" />
           </Tabs>
         </Box>
 
@@ -450,7 +456,15 @@ export default function DatasetDetail() {
             <Grid container spacing={3}>
               {dataset.data_sources.map((source) => (
                 <Grid item xs={12} sm={6} key={source.id}>
-                  <Card>
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': {
+                        boxShadow: 6
+                      }
+                    }}
+                    onClick={() => router.push(`/datasets/sources/${source.id}`)}
+                  >
                     <CardHeader
                       avatar={getDataSourceIcon(source.type)}
                       title={source.name}
@@ -458,7 +472,8 @@ export default function DatasetDetail() {
                       action={
                         <IconButton
                           aria-label="删除"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation(); // 阻止事件冒泡
                             setSelectedSourceId(source.id);
                             setDeleteSourceDialogOpen(true);
                           }}
@@ -474,7 +489,7 @@ export default function DatasetDetail() {
                         </Typography>
                       )}
                       {getDataSourceDetails(source)}
-                      <Box sx={{ mt: 2 }}>
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Chip
                           label={source.processing_status}
                           color={source.processing_status === 'completed' ? 'success' :
@@ -482,6 +497,17 @@ export default function DatasetDetail() {
                                  source.processing_status === 'processing' ? 'primary' : 'default'}
                           size="small"
                         />
+                        <Button
+                          size="small"
+                          startIcon={<PlayArrowIcon />}
+                          onClick={(e) => {
+                            e.stopPropagation(); // 阻止事件冒泡
+                            setSelectedSource(source);
+                            setCreateTaskDialogOpen(true);
+                          }}
+                        >
+                          创建任务
+                        </Button>
                       </Box>
                     </CardContent>
                     <CardActions sx={{ justifyContent: 'flex-end' }}>
@@ -496,8 +522,20 @@ export default function DatasetDetail() {
           )}
         </TabPanel>
 
-        {/* 关联笔记标签页 */}
+        {/* 处理任务标签页 */}
         <TabPanel value={tabValue} index={1}>
+          <TaskList dataSourceId={undefined} onRefresh={() => {
+            // 刷新数据集数据
+            if (dataset) {
+              datasetApi.getDataset(dataset.id).then(data => {
+                setDataset(data);
+              });
+            }
+          }} />
+        </TabPanel>
+
+        {/* 关联笔记标签页 */}
+        <TabPanel value={tabValue} index={2}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="body1" color="text.secondary">
               关联笔记功能将在笔记编辑页面中实现
@@ -695,6 +733,26 @@ export default function DatasetDetail() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* 创建处理任务对话框 */}
+        {selectedSource && (
+          <CreateTaskDialog
+            open={createTaskDialogOpen}
+            onClose={() => setCreateTaskDialogOpen(false)}
+            dataSource={selectedSource}
+            onTaskCreated={() => {
+              setCreateTaskDialogOpen(false);
+              // 刷新数据集数据
+              if (dataset) {
+                datasetApi.getDataset(dataset.id).then(data => {
+                  setDataset(data);
+                });
+              }
+              // 切换到处理任务标签页
+              setTabValue(1);
+            }}
+          />
+        )}
       </Container>
     </>
   );

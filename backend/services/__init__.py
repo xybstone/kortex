@@ -5,3 +5,4 @@ from services.dataset_service import *
 from services.llm_service import *
 from services.llm_config_service import *
 from services.conversation_service import *
+from services.processing_service import *

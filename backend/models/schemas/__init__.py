@@ -6,7 +6,10 @@ from models.schemas.dataset import (
     DataSourceBase, DataSourceCreate, DataSourceUpdate, DataSourceResponse,
     DatabaseSourceCreate, DatabaseSourceUpdate, DatabaseSourceResponse,
     FileSourceCreate, FileSourceUpdate, FileSourceResponse,
-    URLSourceCreate, URLSourceUpdate, URLSourceResponse
+    URLSourceCreate, URLSourceUpdate, URLSourceResponse,
+    ProcessingTaskBase, ProcessingTaskCreate, ProcessingTaskUpdate, ProcessingTaskResponse,
+    ScheduleInfo, DependencyInfo, TaskDependencyBase, TaskDependencyCreate, TaskDependencyResponse,
+    TaskExecutionHistoryBase, TaskExecutionHistoryCreate, TaskExecutionHistoryResponse
 )
 from models.schemas.llm import (
     LLMRequest, LLMResponse, DatabaseAnalysisRequest,

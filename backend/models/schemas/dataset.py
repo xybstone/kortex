@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 from datetime import datetime
 
 # 数据集相关模式
@@ -103,6 +103,114 @@ class DatasetResponse(DatasetBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     data_sources: List[Union[DatabaseSourceResponse, FileSourceResponse, URLSourceResponse]] = []
+
+    class Config:
+        from_attributes = True
+
+
+# 任务依赖关系相关模式
+class TaskDependencyBase(BaseModel):
+    dependency_type: str = "success"  # success, failure, completion
+
+class TaskDependencyCreate(TaskDependencyBase):
+    parent_task_id: int
+    child_task_id: int
+
+class TaskDependencyResponse(TaskDependencyBase):
+    id: int
+    parent_task_id: int
+    child_task_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# 任务执行历史记录相关模式
+class TaskExecutionHistoryBase(BaseModel):
+    task_id: int
+    task_name: str
+    task_type: str
+    status: str
+    started_at: datetime
+    completed_at: datetime
+    duration_seconds: int
+    result_summary: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+
+class TaskExecutionHistoryCreate(TaskExecutionHistoryBase):
+    user_id: Optional[int] = None
+
+class TaskExecutionHistoryResponse(TaskExecutionHistoryBase):
+    id: int
+    created_at: datetime
+    user_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+# 处理任务相关模式
+class ProcessingTaskBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    task_type: str
+    priority: Optional[int] = 0
+    is_recurring: Optional[bool] = False
+    wait_for_dependencies: Optional[bool] = True
+
+class ScheduleInfo(BaseModel):
+    """调度信息"""
+    schedule_type: str  # once, daily, weekly, monthly, cron
+    schedule_value: str  # 调度值，如cron表达式或特定时间
+    max_runs: Optional[int] = None  # 最大运行次数，为空表示无限制
+
+class DependencyInfo(BaseModel):
+    """依赖信息"""
+    parent_task_id: int
+    dependency_type: str = "success"  # success, failure, completion
+
+class ProcessingTaskCreate(ProcessingTaskBase):
+    data_source_id: int
+    parameters: Optional[Dict[str, Any]] = None
+    schedule_info: Optional[ScheduleInfo] = None
+    dependencies: Optional[List[DependencyInfo]] = None
+    user_id: Optional[int] = None
+
+class ProcessingTaskUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    priority: Optional[int] = None
+    status: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+    is_recurring: Optional[bool] = None
+    wait_for_dependencies: Optional[bool] = None
+    schedule_info: Optional[ScheduleInfo] = None
+
+class ProcessingTaskResponse(ProcessingTaskBase):
+    id: int
+    data_source_id: int
+    status: str
+    parameters: Optional[Dict[str, Any]] = None
+    result: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    progress: int
+
+    # 调度信息
+    schedule_type: Optional[str] = None
+    schedule_value: Optional[str] = None
+    next_run_time: Optional[datetime] = None
+    last_run_time: Optional[datetime] = None
+    run_count: Optional[int] = 0
+    max_runs: Optional[int] = None
+
+    # 依赖信息
+    parent_tasks: Optional[List[TaskDependencyResponse]] = None
+    child_tasks: Optional[List[TaskDependencyResponse]] = None
+
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    user_id: Optional[int] = None
 
     class Config:
         from_attributes = True

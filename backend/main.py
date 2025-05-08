@@ -1,11 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import asyncio
 
 from api.router import api_router
 from core.config import settings
 from database.session import engine
 from database.base import Base
+from core.dependencies import get_db
+from core.processing.task_queue import task_queue
+from core.processing.scheduler import task_scheduler
+from core.nlp import llm_manager, init_llm_manager
 
 # 初始化数据库表
 # 注意：在生产环境中，应该使用Alembic进行数据库迁移
@@ -16,8 +21,59 @@ async def lifespan(app: FastAPI):
     # 使用create_all时添加checkfirst=True参数，避免重复创建表
     Base.metadata.create_all(bind=engine, checkfirst=True)
     print("已初始化数据库表")
+
+    # 初始化LLM管理器
+    llm_config = {
+        "openai": {
+            "api_key": settings.LLM_API_KEY,
+            "models": [
+                {
+                    "name": "gpt-3.5-turbo",
+                    "temperature": 0.0,
+                    "max_tokens": 1000,
+                    "is_default": True
+                },
+                {
+                    "name": "gpt-4",
+                    "temperature": 0.0,
+                    "max_tokens": 1000
+                }
+            ]
+        },
+        "deepseek": {
+            "api_key": settings.DEEPSEEK_API_KEY,
+            "models": [
+                {
+                    "name": "deepseek-chat",
+                    "temperature": 0.0,
+                    "max_tokens": 1000
+                }
+            ]
+        }
+    }
+    init_llm_manager(llm_config)
+    print("已初始化LLM管理器")
+
+    # 启动任务队列
+    task_queue_task = asyncio.create_task(task_queue.start(get_db))
+    print("已启动任务队列")
+
+    # 启动任务调度器
+    scheduler_task = asyncio.create_task(task_scheduler.start(get_db))
+    print("已启动任务调度器")
+
     yield
+
     # 关闭时执行
+    # 停止任务队列
+    task_queue.running = False
+    await task_queue_task
+    print("已停止任务队列")
+
+    # 停止任务调度器
+    await task_scheduler.stop()
+    print("已停止任务调度器")
+
     print("应用关闭")
 
 # 创建FastAPI应用

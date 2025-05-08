@@ -21,3 +21,5 @@ class User(BaseModel, TimestampMixin):
     llm_models = relationship("LLMModel", back_populates="user")
     llm_roles = relationship("LLMRole", back_populates="user")
     conversations = relationship("Conversation", back_populates="user")
+    processing_tasks = relationship("ProcessingTask", back_populates="user")
+    task_execution_history = relationship("TaskExecutionHistory", back_populates="user")

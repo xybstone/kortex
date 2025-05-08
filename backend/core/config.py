@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # LLM配置
     LLM_API_KEY: Optional[str] = None
     LLM_MODEL: str = "gpt-3.5-turbo"
+    DEEPSEEK_API_KEY: Optional[str] = None
 
     # 加密配置
     ENCRYPTION_KEY: Optional[str] = None
