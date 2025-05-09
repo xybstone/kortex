@@ -39,32 +39,39 @@ class FileProcessor(BaseDataProcessor):
 
     def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
         """验证任务参数"""
-        # 根据不同的任务类型验证参数
-        task_type = parameters.get("task_type")
+        # 检查参数是否为空
+        if not parameters:
+            return False
 
-        if task_type == "file_embed":
+        # 检查必要的参数
+        if "file_embed" in parameters.get("task_type", ""):
             # 嵌入任务需要指定嵌入模型
             return "embed_model" in parameters
 
-        elif task_type == "file_extract":
+        elif "file_extract" in parameters.get("task_type", ""):
             # 提取任务需要指定提取类型
             return "extract_type" in parameters
 
-        elif task_type == "file_convert":
-            # 转换任务需要指定目标格式
-            return "target_format" in parameters
+        # 根据不同的任务类型验证参数
+        if "embed_model" in parameters:
+            # 嵌入任务
+            return True
 
-        elif task_type == "file_analyze":
-            # 文件分析任务需要指定分析类型
-            return "analysis_type" in parameters
+        elif "extract_type" in parameters:
+            # 提取任务
+            return True
 
-        elif task_type == "csv_process":
-            # CSV处理任务需要指定处理操作
-            return "operations" in parameters
+        elif "target_format" in parameters:
+            # 转换任务
+            return True
 
-        elif task_type == "text_process":
-            # 文本处理任务需要指定处理操作
-            return "operations" in parameters
+        elif "analysis_type" in parameters:
+            # 文件分析任务
+            return True
+
+        elif "operations" in parameters:
+            # CSV处理任务或文本处理任务
+            return True
 
         return False
 

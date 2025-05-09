@@ -117,3 +117,5 @@ celerybeat.pid
 dmypy.json
 .pyre/
 .pytype/
+
+backend/temp/

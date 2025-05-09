@@ -99,7 +99,7 @@ export default function MarkdownEditor({
   return (
     <Box className="markdown-editor">
       <Paper elevation={0} className="editor-container">
-        <Toolbar variant="dense" sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', p: 0.5 }}>
           {/* 格式化工具栏 */}
           <Box sx={{ display: viewMode === 'edit' ? 'flex' : 'none', alignItems: 'center' }}>
             <Tooltip title="加粗">
@@ -169,7 +169,7 @@ export default function MarkdownEditor({
               </ToggleButton>
             </ToggleButtonGroup>
           )}
-        </Toolbar>
+        </Box>
 
         <Box className="editor-content">
           {/* 编辑区域 - 仅在编辑模式显示 */}

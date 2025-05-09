@@ -34,7 +34,8 @@ services:
       <<: *common-variables
       DATABASE_URL: postgresql://postgres:postgres@db/kortex
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
-      BACKEND_CORS_ORIGINS: http://localhost:3000,http://frontend:3000
+      BACKEND_CORS_ORIGINS: http://localhost:3000,http://localhost:3001,http://frontend:3000
+      IS_DOCKER: "true"
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/temp:/app/temp
@@ -44,28 +45,6 @@ services:
       - kortex-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # 前端服务
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: kortex-frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-    ports:
-      - "3000:3000"
-    networks:
-      - kortex-network
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3

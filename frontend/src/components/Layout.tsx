@@ -23,6 +23,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,6 +67,7 @@ export default function Layout({ children }: LayoutProps) {
     { text: '笔记', icon: <NoteIcon />, path: '/notes' },
     { text: '数据集', icon: <StorageIcon />, path: '/datasets' },
     { text: '大模型', icon: <SmartToyIcon />, path: '/llm' },
+    { text: '比较', icon: <CompareArrowsIcon />, path: '/compare' },
   ];
 
   return (

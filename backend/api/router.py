@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from api.routes import auth, notes, datasets, llm, llm_config, conversations, processing, nlp
 from api.routes import task_dependency, task_history
+from api.endpoints import pdf
 
 # 创建主路由
 api_router = APIRouter()
@@ -17,3 +18,4 @@ api_router.include_router(processing.router, prefix="/processing", tags=["数据
 api_router.include_router(nlp.router, prefix="/nlp", tags=["自然语言处理"])
 api_router.include_router(task_dependency.router, prefix="/task-dependencies", tags=["任务依赖"])
 api_router.include_router(task_history.router, prefix="/task-history", tags=["任务历史"])
+api_router.include_router(pdf.router, prefix="/pdf", tags=["PDF处理"])

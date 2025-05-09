@@ -5,9 +5,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from backend.core.config import settings
-from backend.database.session import Base
-from backend.models.models import User, Note, Database, NoteDatabase, Table, Column, Row, Cell
+from core.config import settings
+from database.session import Base
+from database.base import *  # 导入所有模型
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

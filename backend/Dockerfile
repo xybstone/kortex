@@ -1,4 +1,4 @@
-FROM kortex-python:3.10-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
@@ -10,13 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 安装Python依赖
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir email-validator langchain-deepseek
+RUN pip install --no-cache-dir email-validator langchain-deepseek marker-pdf
 
 # 复制应用代码
 COPY . .
 
-# 创建上传目录
-RUN mkdir -p uploads
+# 创建上传目录和临时目录
+RUN mkdir -p uploads temp
 
 # 设置环境变量
 ENV PYTHONPATH=/app

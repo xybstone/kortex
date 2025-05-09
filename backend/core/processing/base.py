@@ -81,7 +81,17 @@ class BaseDataProcessor(DataProcessor):
             }
 
         # 验证参数
-        if not self.validate_parameters(task.parameters or {}):
+        parameters = task.parameters or {}
+
+        # 确保参数中包含任务类型信息
+        if isinstance(parameters, dict) and task.task_type:
+            # 将任务类型添加到参数中，以便验证
+            parameters_with_type = parameters.copy()
+            parameters_with_type["task_type"] = task.task_type
+        else:
+            parameters_with_type = parameters
+
+        if not self.validate_parameters(parameters_with_type):
             return {
                 "success": False,
                 "error": "无效的任务参数"
